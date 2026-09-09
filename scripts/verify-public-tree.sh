@@ -9,7 +9,7 @@ cd "$repo_root"
 forbidden=''
 while IFS= read -r path; do
   case "$path" in
-    .env|SITOWEB/config.php|firebase-service-account.json|*/firebase-service-account.json|MOBILE/android/app/google-services.json|MOBILE/ios/Runner/GoogleService-Info.plist|config/nginx.prod.conf|nginx/certs/*|nginx/certbot/*|frontend/node_modules/*|frontend/dist/*|.codex/*|.idea/*|*.log)
+    .env|.DS_Store|*/.DS_Store|SITOWEB/config.php|firebase-service-account.json|*/firebase-service-account.json|MOBILE/android/app/google-services.json|MOBILE/ios/Runner/GoogleService-Info.plist|config/nginx.prod.conf|nginx/certs/*|nginx/certbot/*|frontend/node_modules/*|frontend/dist/*|MOBILE/android/daemon/*|MOBILE/android/kotlin-profile/*|MOBILE/android/native/*|MOBILE/ios/build/*|.codex/*|.idea/*|*.log)
       forbidden+="${path}"$'\n'
       ;;
     data/backups/*|data/uploads/*)

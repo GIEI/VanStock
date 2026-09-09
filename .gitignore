@@ -11,6 +11,11 @@ ANDROID/.idea/
 MOBILE/android/app/build/
 MOBILE/android/caches
 MOBILE/android/wrapper
+MOBILE/android/daemon/
+MOBILE/android/kotlin-profile/
+MOBILE/android/native/
+MOBILE/ios/build/
+.DS_Store
 
 # Environment / secrets
 .env
