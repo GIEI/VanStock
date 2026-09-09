@@ -1,0 +1,128 @@
+<div class="page-container">
+  <div class="page-header">
+    <h2>{{ 'SCANNER.TITLE' | translate }}</h2>
+  </div>
+
+  <!-- IDLE -->
+  <div *ngIf="state === 'idle'" class="scanner-idle">
+    <div class="scanner-hero">
+      <mat-icon class="hero-icon">qr_code_scanner</mat-icon>
+      <p>{{ 'SCANNER.SCAN_BARCODE' | translate }}</p>
+    </div>
+
+    <button mat-raised-button color="primary" class="scan-btn" (click)="startScan()">
+      <mat-icon>photo_camera</mat-icon>
+      {{ 'SCANNER.START_SCAN' | translate }}
+    </button>
+
+    <div class="divider-text"><span>{{ 'SCANNER.OR_MANUAL' | translate }}</span></div>
+
+    <div class="manual-input">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>{{ 'SCANNER.BARCODE_SKU' | translate }}</mat-label>
+        <input matInput [(ngModel)]="manualCode" placeholder="{{ 'SCANNER.BARCODE_PLACEHOLDER' | translate }}"
+               (keyup.enter)="manualSearch()">
+        <mat-icon matSuffix>keyboard</mat-icon>
+      </mat-form-field>
+      <button mat-raised-button color="accent" (click)="manualSearch()" [disabled]="!manualCode.trim()">
+        <mat-icon>search</mat-icon> {{ 'COMMON.SEARCH' | translate }}
+      </button>
+    </div>
+  </div>
+
+  <!-- SCANNING -->
+  <div *ngIf="state === 'scanning'" class="scanner-active">
+    <div class="scanner-container">
+      <video #videoEl autoplay muted playsinline></video>
+      <div class="scanner-crosshair"></div>
+      <div class="scanner-hint">{{ 'SCANNER.AIM_BARCODE' | translate }}</div>
+    </div>
+
+    <div class="scan-actions mt-16">
+      <button mat-raised-button color="warn" (click)="stopScan()">
+        <mat-icon>stop</mat-icon> {{ 'SCANNER.STOP_SCAN' | translate }}
+      </button>
+    </div>
+  </div>
+
+  <!-- FOUND -->
+  <div *ngIf="state === 'found' && foundProduct" class="result-card">
+    <div class="result-header success">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ 'SCANNER.FOUND' | translate }}</span>
+    </div>
+
+    <mat-card class="product-result-card">
+      <mat-card-content>
+        <div class="product-result-row">
+          <img *ngIf="foundProduct.photo_url" [src]="foundProduct.photo_url | photoUrl" [alt]="foundProduct.name" class="result-photo">
+          <mat-icon *ngIf="!foundProduct.photo_url" class="result-photo-placeholder">inventory_2</mat-icon>
+          <div class="result-info">
+            <div class="result-name">{{foundProduct.name}}</div>
+            <div class="result-sku">SKU: {{foundProduct.sku}}</div>
+            <div class="result-barcode">Barcode: {{scannedCode}}</div>
+          </div>
+        </div>
+
+        <div class="result-stock">
+          <span class="qty-big">{{foundProduct.quantity}}</span>
+          <span class="qty-unit">{{foundProduct.unit}}</span>
+          <span class="stock-badge" [ngClass]="stockClass(foundProduct)">
+            min {{foundProduct.min_stock}}
+          </span>
+        </div>
+
+        <div *ngIf="foundProduct.location_name" class="result-location">
+          <mat-icon>local_shipping</mat-icon>
+          {{foundProduct.location_name}}
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <div class="result-actions">
+      <button mat-raised-button color="primary" (click)="goToProduct()">
+        <mat-icon>open_in_new</mat-icon> {{ 'SCANNER.OPEN' | translate }}
+      </button>
+      <button mat-raised-button style="background:#4caf50;color:white" (click)="addMovement('carico')">
+        <mat-icon>add_circle</mat-icon> {{ 'SCANNER.LOAD' | translate }}
+      </button>
+      <button mat-raised-button color="warn" (click)="addMovement('scarico')">
+        <mat-icon>remove_circle</mat-icon> {{ 'SCANNER.UNLOAD' | translate }}
+      </button>
+      <button mat-stroked-button (click)="reset()">
+        <mat-icon>qr_code_scanner</mat-icon> {{ 'SCANNER.NEW_SCAN' | translate }}
+      </button>
+    </div>
+  </div>
+
+  <!-- NOT FOUND -->
+  <div *ngIf="state === 'not-found'" class="result-card">
+    <div class="result-header warning">
+      <mat-icon>search_off</mat-icon>
+      <span>{{ 'SCANNER.NOT_FOUND' | translate }}</span>
+    </div>
+    <p class="scanned-code">{{ 'SCANNER.CODE' | translate }}: <strong>{{scannedCode}}</strong></p>
+    <div class="result-actions">
+      <button mat-raised-button color="primary" (click)="createWithBarcode()">
+        <mat-icon>add</mat-icon> {{ 'SCANNER.CREATE_PRODUCT' | translate }}
+      </button>
+      <button mat-stroked-button (click)="reset()">
+        <mat-icon>refresh</mat-icon> {{ 'COMMON.RETRY' | translate }}
+      </button>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div *ngIf="state === 'error'" class="result-card">
+    <div class="result-header error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ 'SCANNER.ERROR' | translate }}</span>
+    </div>
+    <p class="error-message">{{errorMessage}}</p>
+    <div class="result-actions">
+      <button mat-stroked-button (click)="reset()">
+        <mat-icon>refresh</mat-icon> {{ 'COMMON.RETRY' | translate }}
+      </button>
+    </div>
+  </div>
+</div>

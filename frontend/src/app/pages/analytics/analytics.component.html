@@ -1,0 +1,160 @@
+<div class="page-container">
+
+  <!-- ── HEADER ───────────────────────────────────────────────────────────────── -->
+  <div class="page-header analytics-header">
+    <div class="header-title">
+      <mat-icon>show_chart</mat-icon>
+      <h2>Statistiche prodotti</h2>
+    </div>
+
+    <mat-button-toggle-group [value]="weeks" (change)="setWeeks($event.value)" class="week-toggle">
+      <mat-button-toggle [value]="4">4 sett.</mat-button-toggle>
+      <mat-button-toggle [value]="8">8 sett.</mat-button-toggle>
+      <mat-button-toggle [value]="12">12 sett.</mat-button-toggle>
+    </mat-button-toggle-group>
+  </div>
+
+  <!-- ── SPINNER ──────────────────────────────────────────────────────────────── -->
+  <div *ngIf="loading" class="spinner-wrap">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <ng-container *ngIf="!loading">
+
+    <!-- ── CHART 1: Movement trend ─────────────────────────────────────────────── -->
+    <mat-card class="chart-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>trending_up</mat-icon>
+          Andamento movimenti settimanale
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+
+        <div *ngIf="trend.length === 0" class="empty-chart">
+          <mat-icon>bar_chart</mat-icon>
+          <p>Nessun movimento nel periodo selezionato</p>
+        </div>
+
+        <ng-container *ngIf="trend.length > 0">
+          <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" class="chart-svg" aria-hidden="true">
+
+            <!-- Y grid lines + labels -->
+            <ng-container *ngFor="let tick of yTicks(trendMaxY())">
+              <line [attr.x1]="padL" [attr.x2]="W - padR"
+                    [attr.y1]="tick.y" [attr.y2]="tick.y" class="grid-line"/>
+              <text [attr.x]="padL - 6" [attr.y]="tick.y + 4" class="axis-label axis-y">{{ tick.val }}</text>
+            </ng-container>
+
+            <!-- X labels -->
+            <ng-container *ngFor="let t of xTicks(trendLabels); let i = index">
+              <text *ngIf="showXLabel(i, trendLabels.length)"
+                    [attr.x]="t.x" [attr.y]="H - 6" class="axis-label axis-x">{{ t.label }}</text>
+            </ng-container>
+
+            <!-- Carichi line -->
+            <polyline [attr.points]="polyline(trendCarichi, trendMaxY())"
+                      fill="none" [attr.stroke]="TREND_COLORS.carichi" stroke-width="2" stroke-linejoin="round"/>
+
+            <!-- Scarichi line -->
+            <polyline [attr.points]="polyline(trendScarichi, trendMaxY())"
+                      fill="none" [attr.stroke]="TREND_COLORS.scarichi" stroke-width="2" stroke-linejoin="round"/>
+
+            <!-- Trasferimenti line -->
+            <polyline [attr.points]="polyline(trendTrasferimenti, trendMaxY())"
+                      fill="none" [attr.stroke]="TREND_COLORS.trasferimenti" stroke-width="1.5"
+                      stroke-dasharray="4 3" stroke-linejoin="round"/>
+
+            <!-- Dots with tooltip -->
+            <ng-container *ngFor="let d of trend; let i = index">
+              <circle [attr.cx]="dotX(i, trend.length)" [attr.cy]="dotY(+d.carichi, trendMaxY())"
+                      r="3.5" [attr.fill]="TREND_COLORS.carichi" class="dot"
+                      [matTooltip]="tooltipTrend(d)"/>
+              <circle [attr.cx]="dotX(i, trend.length)" [attr.cy]="dotY(+d.scarichi, trendMaxY())"
+                      r="3.5" [attr.fill]="TREND_COLORS.scarichi" class="dot"
+                      [matTooltip]="tooltipTrend(d)"/>
+            </ng-container>
+
+          </svg>
+
+          <div class="legend">
+            <span class="legend-item">
+              <span class="legend-line" [style.background]="TREND_COLORS.carichi"></span>Carichi
+            </span>
+            <span class="legend-item">
+              <span class="legend-line" [style.background]="TREND_COLORS.scarichi"></span>Scarichi
+            </span>
+            <span class="legend-item">
+              <span class="legend-line legend-dashed" [style.background]="TREND_COLORS.trasferimenti"></span>Trasferimenti
+            </span>
+          </div>
+        </ng-container>
+
+      </mat-card-content>
+    </mat-card>
+
+    <!-- ── CHART 2: Top products ──────────────────────────────────────────────── -->
+    <mat-card class="chart-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>inventory_2</mat-icon>
+          Top prodotti movimentati
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+
+        <div *ngIf="topData.products.length === 0" class="empty-chart">
+          <mat-icon>bar_chart</mat-icon>
+          <p>Nessun movimento nel periodo selezionato</p>
+        </div>
+
+        <ng-container *ngIf="topData.products.length > 0">
+          <svg [attr.viewBox]="'0 0 ' + W + ' ' + H" class="chart-svg" aria-hidden="true">
+
+            <!-- Y grid lines + labels -->
+            <ng-container *ngFor="let tick of yTicks(topMaxY())">
+              <line [attr.x1]="padL" [attr.x2]="W - padR"
+                    [attr.y1]="tick.y" [attr.y2]="tick.y" class="grid-line"/>
+              <text [attr.x]="padL - 6" [attr.y]="tick.y + 4" class="axis-label axis-y">{{ tick.val }}</text>
+            </ng-container>
+
+            <!-- X labels -->
+            <ng-container *ngFor="let t of xTicks(topData.labels); let i = index">
+              <text *ngIf="showXLabel(i, topData.labels.length)"
+                    [attr.x]="t.x" [attr.y]="H - 6" class="axis-label axis-x">{{ t.label }}</text>
+            </ng-container>
+
+            <!-- One line per product -->
+            <ng-container *ngFor="let p of topData.products; let pi = index">
+              <polyline [attr.points]="polyline(p.weeks, topMaxY())"
+                        fill="none"
+                        [attr.stroke]="PRODUCT_COLORS[pi]"
+                        stroke-width="2"
+                        stroke-linejoin="round"/>
+
+              <!-- Dots -->
+              <ng-container *ngFor="let v of p.weeks; let wi = index">
+                <circle [attr.cx]="dotX(wi, topData.labels.length)"
+                        [attr.cy]="dotY(v, topMaxY())"
+                        r="3.5"
+                        [attr.fill]="PRODUCT_COLORS[pi]"
+                        class="dot"
+                        [matTooltip]="tooltipProduct(topData.labels[wi], v, p.name)"/>
+              </ng-container>
+            </ng-container>
+
+          </svg>
+
+          <div class="legend">
+            <span *ngFor="let p of topData.products; let pi = index" class="legend-item">
+              <span class="legend-line" [style.background]="PRODUCT_COLORS[pi]"></span>{{ p.name }}
+            </span>
+          </div>
+        </ng-container>
+
+      </mat-card-content>
+    </mat-card>
+
+  </ng-container>
+
+</div>

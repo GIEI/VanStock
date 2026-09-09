@@ -1,0 +1,137 @@
+.page-container { padding: 16px; max-width: 1200px; margin: 0 auto; }
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; h2 { margin: 0; } }
+.mb-16 { margin-bottom: 16px; }
+.create-row { display: flex; gap: 12px; align-items: flex-start; }
+.flex-1 { flex: 1; }
+.full-width { width: 100%; }
+.actions-cell { white-space: nowrap; text-align: right; }
+.empty-state { text-align: center; color: #888; padding: 32px; }
+
+mat-card-content {
+  overflow-x: auto;
+}
+
+.currency-badge {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--c-text2);
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+.currency-select {
+  font-size: 14px;
+  width: 160px;
+  margin: 0;
+}
+
+.logo-cell { padding: 6px 8px !important; }
+
+.logo-upload-wrap {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  width: 48px;
+  height: 48px;
+
+  &:hover .logo-overlay { opacity: 1; }
+}
+
+.company-logo {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--c-border);
+  background: var(--c-surface2);
+  display: block;
+}
+
+.logo-placeholder {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+
+  mat-icon { font-size: 24px; width: 24px; height: 24px; color: var(--c-text3); }
+}
+
+.logo-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+  border-radius: var(--r-sm);
+
+  mat-icon { color: #fff; font-size: 20px; width: 20px; height: 20px; }
+}
+
+.license-cell {
+  white-space: nowrap;
+  // Layout flex per centrare chip e bottone sull'asse verticale del cell
+  > * { display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
+}
+.license-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 12px;
+  background: #e8f5e9; color: #2e7d32; font-size: 13px; font-weight: 500;
+  line-height: 1;
+  .plan-chip { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: rgba(0,0,0,0.08); color: inherit; }
+}
+.license-chip--full { background: #ffebee; color: #c62828; }
+.muted { color: #aaa; }
+
+.template-cell {
+  white-space: nowrap;
+  > * { vertical-align: middle; }
+}
+
+.template-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-primary, #1976d2);
+  background: rgba(25, 118, 210, 0.10);
+  border: 1px solid rgba(25, 118, 210, 0.30);
+  border-radius: 4px;
+  padding: 4px 10px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.template-icon { font-size: 14px; width: 14px; height: 14px; }
+
+.template-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--c-text2);
+  border: 1px dashed var(--c-border);
+  border-radius: 4px;
+  padding: 4px 10px;
+  transition: border-color 0.15s, color 0.15s;
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &:hover {
+    color: var(--c-primary, #1976d2);
+    border-color: var(--c-primary, #1976d2);
+  }
+}

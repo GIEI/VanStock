@@ -1,0 +1,14 @@
+<h2 mat-dialog-title>Firma del Cliente</h2>
+
+<mat-dialog-content>
+  <p>Firma nel riquadro sottostante per confermare l'avvenuto intervento.</p>
+  <div class="signature-container">
+    <canvas #canvas class="signature-pad"></canvas>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancel()">ANNULLA</button>
+  <button mat-button color="warn" (click)="clear()">PULISCI</button>
+  <button mat-flat-button color="primary" (click)="confirm()">CONFERMA E CHIUDI</button>
+</mat-dialog-actions>

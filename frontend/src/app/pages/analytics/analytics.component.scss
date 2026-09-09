@@ -1,0 +1,134 @@
+// ── Header ────────────────────────────────────────────────────────────────────
+
+.analytics-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  flex-wrap:       wrap;
+  gap:             12px;
+  margin-bottom:   24px;
+}
+
+.header-title {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+
+  h2 { margin: 0; font-size: 20px; font-weight: 700; color: var(--c-text); }
+  mat-icon { color: var(--c-text2); }
+}
+
+.week-toggle {
+  border-radius: var(--r-full) !important;
+  overflow: hidden;
+}
+
+// ── Spinner ───────────────────────────────────────────────────────────────────
+
+.spinner-wrap {
+  display:         flex;
+  justify-content: center;
+  padding:         60px 0;
+}
+
+// ── Chart card ────────────────────────────────────────────────────────────────
+
+.chart-card {
+  margin-bottom: 24px;
+
+  mat-card-title {
+    display:     flex;
+    align-items: center;
+    gap:         8px;
+    font-size:   15px;
+    font-weight: 600;
+    color:       var(--c-text);
+
+    mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--c-text2); }
+  }
+}
+
+// ── SVG chart ─────────────────────────────────────────────────────────────────
+
+.chart-svg {
+  display:   block;
+  width:     100%;
+  height:    auto;
+  max-height: 240px;
+  overflow:  visible;
+}
+
+.grid-line {
+  stroke:       var(--c-border-mid);
+  stroke-width: 1;
+}
+
+.axis-label {
+  font-size:  10px;
+  font-family: 'Inter', sans-serif;
+  fill:       var(--c-text3);
+}
+
+.axis-y { text-anchor: end; }
+.axis-x { text-anchor: middle; }
+
+.dot {
+  cursor: pointer;
+  transition: r 0.15s;
+
+  &:hover { r: 5; }
+}
+
+// ── Legend ────────────────────────────────────────────────────────────────────
+
+.legend {
+  display:     flex;
+  flex-wrap:   wrap;
+  gap:         16px;
+  margin-top:  12px;
+  padding-top: 10px;
+  border-top:  1px solid var(--c-border);
+}
+
+.legend-item {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  font-size:   12px;
+  color:       var(--c-text2);
+  font-weight: 500;
+}
+
+.legend-line {
+  display:       inline-block;
+  width:         24px;
+  height:        3px;
+  border-radius: 2px;
+  flex-shrink:   0;
+
+  &.legend-dashed {
+    background: repeating-linear-gradient(
+      90deg,
+      currentColor 0,
+      currentColor 4px,
+      transparent  4px,
+      transparent  7px
+    ) !important;
+    opacity: 0.8;
+  }
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+
+.empty-chart {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  padding:         40px 0;
+  color:           var(--c-text3);
+  gap:             8px;
+
+  mat-icon { font-size: 40px; width: 40px; height: 40px; opacity: 0.4; }
+  p        { margin: 0; font-size: 14px; }
+}

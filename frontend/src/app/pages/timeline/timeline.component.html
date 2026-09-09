@@ -1,0 +1,150 @@
+<div class="tl-page">
+
+  <!-- ── Toolbar ── -->
+  <div class="tl-toolbar">
+    <div class="tl-toolbar-left">
+      <h2 class="tl-title">{{ 'TIMELINE.TITLE' | translate }}</h2>
+    </div>
+
+    <div class="tl-toolbar-center">
+      <button mat-icon-button (click)="prevDay()" [matTooltip]="'TIMELINE.PREV' | translate">
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <button mat-stroked-button class="date-label-btn" (click)="today()">
+        {{ dateLabel() }}
+      </button>
+      <button mat-icon-button (click)="nextDay()" [matTooltip]="'TIMELINE.NEXT' | translate">
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+      <button mat-stroked-button (click)="today()">{{ 'TIMELINE.TODAY' | translate }}</button>
+    </div>
+
+    <div class="tl-toolbar-right">
+      <!-- View toggle -->
+      <mat-button-toggle-group [(ngModel)]="viewMode" (change)="onViewModeChange()">
+        <mat-button-toggle value="day">{{ 'TIMELINE.DAY' | translate }}</mat-button-toggle>
+        <mat-button-toggle value="week">{{ 'TIMELINE.WEEK' | translate }}</mat-button-toggle>
+      </mat-button-toggle-group>
+
+      <!-- Technician filter -->
+      <mat-form-field appearance="outline" class="tl-filter-field">
+        <mat-label>{{ 'TIMELINE.ALL_TECHS' | translate }}</mat-label>
+        <mat-select [(ngModel)]="filterUserId" (ngModelChange)="onUserFilter()">
+          <mat-option [value]="null">{{ 'TIMELINE.ALL_TECHS' | translate }}</mat-option>
+          <mat-option *ngFor="let t of technicians" [value]="t.id">{{ t.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- Date picker -->
+      <mat-form-field appearance="outline" class="tl-date-field">
+        <mat-label>{{ 'TIMELINE.DATE' | translate }}</mat-label>
+        <input matInput [matDatepicker]="dp" [(ngModel)]="selectedDate" (ngModelChange)="onDateChange()">
+        <mat-datepicker-toggle matSuffix [for]="dp"></mat-datepicker-toggle>
+        <mat-datepicker #dp></mat-datepicker>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <!-- ── Legend ── -->
+  <div class="tl-legend">
+    <span class="legend-dot bar--green"></span><span>{{ 'TIMELINE.LEGEND_COMPLETED' | translate }}</span>
+    <span class="legend-dot bar--orange"></span><span>{{ 'TIMELINE.LEGEND_IN_PROGRESS' | translate }}</span>
+    <span class="legend-dot bar--red"></span><span>{{ 'TIMELINE.LEGEND_OVERTIME' | translate }}</span>
+    <span class="legend-dot bar--grey"></span><span>{{ 'TIMELINE.LEGEND_PLANNED' | translate }}</span>
+  </div>
+
+  <!-- ── Loading ── -->
+  <div *ngIf="loading" class="tl-loading">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <!-- ── Timeline grid ── -->
+  <div class="tl-scroll-wrapper" *ngIf="!loading">
+    <div class="tl-grid">
+
+      <!-- Left column header -->
+      <div class="tl-left-header">{{ 'TIMELINE.TECHNICIAN' | translate }}</div>
+
+      <!-- Hour headers -->
+      <div class="tl-hours-header">
+        <div class="tl-hour-tick" *ngFor="let h of hours" [style.left.%]="(h - HOUR_START) / (HOUR_END - HOUR_START) * 100">
+          {{ hourLabel(h) }}
+        </div>
+        <!-- Today line -->
+        <div class="tl-now-line" *ngIf="viewMode === 'day'" [style.left.%]="nowLineLeft"></div>
+      </div>
+
+      <!-- Technician rows -->
+      <ng-container *ngFor="let row of techRows">
+        <div class="tl-tech-label">
+          <div class="tl-tech-avatar">{{ row.tech.name.charAt(0).toUpperCase() }}</div>
+          <span class="tl-tech-name">{{ row.tech.name }}</span>
+        </div>
+
+        <div class="tl-row-canvas" [class.tl-row-canvas--empty]="!rowHasJobs(row)" [style.min-height.px]="getRowHeight(row)">
+          <!-- Hour grid lines -->
+          <div class="tl-grid-line" *ngFor="let h of hours"
+               [style.left.%]="(h - HOUR_START) / (HOUR_END - HOUR_START) * 100"></div>
+
+          <!-- Bars per lane -->
+          <ng-container *ngFor="let lane of row.lanes; let laneIdx = index">
+            <div *ngFor="let bar of lane"
+                 class="tl-bar"
+                 [class]="'tl-bar ' + bar.color"
+                 [class.tl-bar--overflow]="bar.overflow"
+                 [style.left.%]="bar.left"
+                 [style.width.%]="bar.width"
+                 [style.top.px]="4 + laneIdx * 32"
+                 (mouseenter)="showTooltip($event, bar.job)"
+                 (mousemove)="moveTooltip($event)"
+                 (mouseleave)="hideTooltip()"
+                 (click)="openJob(bar.job)">
+              <span class="tl-bar-label">{{ bar.job.title }}</span>
+              <span class="tl-bar-duration" *ngIf="bar.job.started_at">{{ durationLabel(bar.job) }}</span>
+            </div>
+          </ng-container>
+
+          <!-- Empty state for row -->
+          <div *ngIf="!rowHasJobs(row)" class="tl-row-empty">
+            {{ 'TIMELINE.NO_JOBS' | translate }}
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- No technicians state -->
+      <div *ngIf="techRows.length === 0" class="tl-empty-full">
+        <mat-icon>people_outline</mat-icon>
+        <p>{{ 'TIMELINE.NO_TECHS' | translate }}</p>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Floating Tooltip ── -->
+<div class="tl-tooltip"
+     *ngIf="tooltipJob"
+     [style.left.px]="tooltipX"
+     [style.top.px]="tooltipY">
+  <div class="tl-tt-header">
+    <strong>{{ tooltipJob.title }}</strong>
+    <span class="tl-tt-duration" *ngIf="tooltipJob.started_at">{{ durationLabel(tooltipJob) }}</span>
+  </div>
+  <div class="tl-tt-row" *ngIf="tooltipJob.client_name">
+    <mat-icon>person</mat-icon> {{ tooltipJob.client_name }}
+  </div>
+  <div class="tl-tt-row" *ngIf="tooltipJob.address || tooltipJob.client_address">
+    <mat-icon>place</mat-icon> {{ tooltipJob.address || tooltipJob.client_address }}
+  </div>
+  <div class="tl-tt-row" *ngIf="tooltipJob.material_count > 0">
+    <mat-icon>build</mat-icon> {{ tooltipJob.material_count }} {{ 'TIMELINE.MATERIALS' | translate }}
+  </div>
+  <div class="tl-tt-photos" *ngIf="tooltipJob.photo_problem || tooltipJob.photo_repair">
+    <img *ngIf="tooltipJob.photo_problem" [src]="tooltipJob.photo_problem | photoUrl" alt="prima">
+    <img *ngIf="tooltipJob.photo_repair"  [src]="tooltipJob.photo_repair  | photoUrl" alt="dopo">
+  </div>
+  <div class="tl-tt-footer">
+    <mat-icon>open_in_new</mat-icon> {{ 'TIMELINE.CLICK_DETAIL' | translate }}
+  </div>
+</div>

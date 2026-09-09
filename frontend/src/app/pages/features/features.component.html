@@ -1,0 +1,61 @@
+<div class="page-container">
+  <div class="page-header">
+    <div>
+      <h2>Funzionalità</h2>
+      <p>Le nuove Feature sono disabilitate per tutte le Company.</p>
+    </div>
+  </div>
+
+  <mat-card class="mb-16">
+    <mat-card-header><mat-card-title>Nuova Feature</mat-card-title></mat-card-header>
+    <mat-card-content class="form-row">
+      <mat-form-field appearance="outline"><mat-label>Codice tecnico</mat-label><input matInput [(ngModel)]="featureKey" placeholder="Esempio: FATTURAZIONE"></mat-form-field>
+      <mat-form-field appearance="outline"><mat-label>Nome</mat-label><input matInput [(ngModel)]="featureName" placeholder="Esempio: Fatturazione"></mat-form-field>
+      <mat-form-field appearance="outline" class="description"><mat-label>Descrizione</mat-label><input matInput [(ngModel)]="featureDescription"></mat-form-field>
+      <button mat-raised-button color="primary" (click)="create()" [disabled]="!featureKey.trim() || !featureName.trim()"><mat-icon>add</mat-icon> Crea</button>
+    </mat-card-content>
+    <mat-card-content *ngIf="menuResources.length" class="menu-picker">
+      <p class="menu-picker-title">Voci di menu da associare</p>
+      <mat-checkbox *ngFor="let resource of menuResources" [checked]="isMenuSelected(resource.resource_key, newFeatureMenuKeys)" (change)="toggleNewFeatureMenu(resource.resource_key, $event.checked)">
+        {{ resource.name }}<span *ngIf="resource.platform === 'MOBILE'"> (app)</span>
+      </mat-checkbox>
+      <small>La selezione collega automaticamente anche la pagina e l’accesso ai dati corrispondenti.</small>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="mb-16">
+    <mat-card-header><mat-card-title>Voci di menu associate</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <mat-form-field appearance="outline" class="company-select"><mat-label>Feature</mat-label><mat-select [(ngModel)]="selectedBindingFeatureKey" (selectionChange)="loadBindings()"><mat-option *ngFor="let feature of features" [value]="feature.feature_key">{{ feature.name }}</mat-option></mat-select></mat-form-field>
+      <div *ngIf="selectedBindingFeatureKey" class="resource-list">
+        <mat-checkbox *ngFor="let resource of menuResources" [checked]="isMenuSelected(resource.resource_key, selectedResourceKeys)" (change)="toggleResource(resource.resource_key, $event.checked)">
+          <strong>{{ resource.name }}<span *ngIf="resource.platform === 'MOBILE'"> (app)</span></strong>
+        </mat-checkbox>
+      </div>
+      <button *ngIf="selectedBindingFeatureKey" mat-raised-button color="primary" (click)="saveBindings()">Salva associazioni</button>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="mb-16">
+    <mat-card-header><mat-card-title>Catalogo Feature</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <div class="feature-row" *ngFor="let feature of features">
+        <div><strong>{{ feature.name }}</strong><span class="code">{{ feature.feature_key }}</span><p>{{ feature.description || 'Nessuna descrizione' }}</p></div>
+        <div class="feature-status"><span>{{ feature.enabled_company_count || 0 }} Company abilitate</span><mat-slide-toggle [checked]="feature.is_active" (change)="setFeatureActive(feature, $event.checked)">Catalogo attivo</mat-slide-toggle></div>
+      </div>
+      <p *ngIf="features.length === 0" class="empty">Non esistono ancora Feature.</p>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card>
+    <mat-card-header><mat-card-title>Feature della Company</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <mat-form-field appearance="outline" class="company-select"><mat-label>Company</mat-label><mat-select [(ngModel)]="selectedCompanyId" (selectionChange)="loadCompanyFeatures()"><mat-option *ngFor="let company of companies" [value]="company.id">{{ company.name }}</mat-option></mat-select></mat-form-field>
+      <div class="feature-row" *ngFor="let feature of companyFeatures">
+        <div><strong>{{ feature.name }}</strong><span class="code">{{ feature.feature_key }}</span><p>{{ feature.description || 'Nessuna descrizione' }}</p></div>
+        <mat-slide-toggle [checked]="feature.enabled" [disabled]="!feature.is_active || loading" (change)="setCompanyFeature(feature, $event.checked)">{{ feature.enabled ? 'Abilitata' : 'Disabilitata' }}</mat-slide-toggle>
+      </div>
+      <p *ngIf="selectedCompanyId && !loading && companyFeatures.length === 0" class="empty">Nessuna Feature disponibile.</p>
+    </mat-card-content>
+  </mat-card>
+</div>

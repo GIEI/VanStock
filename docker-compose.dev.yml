@@ -1,0 +1,17 @@
+services:
+  backend:
+    environment:
+      NODE_ENV: development
+
+  gateway:
+    image: nginx:alpine
+    container_name: stocksimple-gateway
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.dev.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+      - sito_php

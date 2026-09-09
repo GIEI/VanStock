@@ -1,0 +1,279 @@
+<div class="page-container" *ngIf="product; else loadingTpl">
+
+  <!-- Header actions -->
+  <div class="page-header">
+    <button mat-icon-button routerLink="/products"><mat-icon>arrow_back</mat-icon></button>
+    <h2>{{product.name}}</h2>
+    <span class="spacer"></span>
+    <a *ngIf="auth.isAdmin" mat-icon-button [routerLink]="['/products', product.id, 'edit']">
+      <mat-icon>edit</mat-icon>
+    </a>
+    <button *ngIf="auth.isAdmin" mat-icon-button color="warn" (click)="delete()">
+      <mat-icon>delete</mat-icon>
+    </button>
+  </div>
+
+  <div class="detail-grid">
+    <!-- Main info card -->
+    <mat-card>
+      <mat-card-content>
+        <div class="detail-header">
+          <img *ngIf="product.photo_url" [src]="product.photo_url | photoUrl" [alt]="product.name"
+               class="product-photo-lg photo-clickable" (click)="lightboxOpen = true">
+          <mat-icon *ngIf="!product.photo_url" class="photo-placeholder-lg">inventory_2</mat-icon>
+
+          <div class="detail-main-info">
+            <div class="stock-display">
+              <span class="qty-big">{{product.quantity}}</span>
+              <span class="unit-label">{{product.unit}}</span>
+              <span class="stock-badge" [ngClass]="stockClass()">
+                {{ 'PRODUCT_DETAIL.MIN' | translate }} {{product.min_stock}} {{product.unit}}
+              </span>
+            </div>
+
+            <div class="info-row"><mat-icon>qr_code</mat-icon> <span>{{product.sku}}</span></div>
+            <div class="info-row" *ngIf="product.barcode"><mat-icon>barcode_reader</mat-icon> <span>{{product.barcode}}</span></div>
+            <div class="info-row" *ngIf="product.category_name || product.category"><mat-icon>category</mat-icon> <span>{{product.category_name || product.category}}</span></div>
+
+            <div class="info-row" *ngIf="product.price"><mat-icon>euro</mat-icon> <span>{{product.price | number:'1.2-2'}} €</span></div>
+            <div class="info-row margin-row" *ngIf="avgPurchasePrice">
+              <mat-icon>trending_up</mat-icon>
+              <span>
+                {{ 'PRODUCT_DETAIL.AVG_COST' | translate }}: <strong>{{avgPurchasePrice | number:'1.2-2'}} €</strong>
+                <span *ngIf="product.price" class="margin-badge" [class.margin-positive]="marginPct >= 0" [class.margin-negative]="marginPct < 0">
+                  &nbsp;· {{ 'PRODUCT_DETAIL.MARGIN' | translate }} {{marginPct | number:'1.1-1'}}%
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <p *ngIf="product.description" class="description">{{product.description}}</p>
+        <p *ngIf="product.notes" class="notes"><mat-icon style="font-size:14px;vertical-align:middle">notes</mat-icon> {{product.notes}}</p>
+      </mat-card-content>
+
+      <mat-card-actions class="actions-wrap">
+        <div class="actions-row">
+          <a mat-raised-button color="primary"
+             [routerLink]="['/movements/new']" [queryParams]="{product_id: product.id, type: 'carico'}">
+            <mat-icon>add_circle</mat-icon> {{ 'PRODUCT_DETAIL.CARICO' | translate }}
+          </a>
+          <a mat-raised-button color="warn"
+             [routerLink]="['/movements/new']" [queryParams]="{product_id: product.id, type: 'scarico'}">
+            <mat-icon>remove_circle</mat-icon> {{ 'PRODUCT_DETAIL.SCARICO' | translate }}
+          </a>
+          <a mat-raised-button
+             [routerLink]="['/movements/new']" [queryParams]="{product_id: product.id, type: 'trasferimento'}">
+            <mat-icon>swap_horiz</mat-icon> {{ 'PRODUCT_DETAIL.TRANSFER' | translate }}
+          </a>
+        </div>
+      </mat-card-actions>
+    </mat-card>
+
+    <!-- Suppliers card -->
+    <mat-card class="suppliers-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon class="card-title-icon">store</mat-icon>
+          {{ 'PRODUCT_DETAIL.SUPPLIERS_TITLE' | translate }}
+        </mat-card-title>
+        <span class="spacer"></span>
+        <button type="button"
+                *ngIf="auth.isAdmin && !showAddSupplier && availableSuppliers.length > 0"
+                mat-stroked-button (click)="showAddSupplier = true">
+          <mat-icon>add</mat-icon> {{ 'PRODUCT_DETAIL.ADD_SUPPLIER' | translate }}
+        </button>
+      </mat-card-header>
+      <mat-card-content>
+
+        <!-- Add supplier inline form -->
+        <div *ngIf="showAddSupplier && auth.isAdmin" class="add-supplier-form" [formGroup]="addSupplierForm">
+          <mat-form-field appearance="outline" class="sup-field-grow">
+            <mat-label>{{ 'PRODUCT_DETAIL.SUPPLIER_LABEL' | translate }}</mat-label>
+            <mat-select formControlName="supplier_id">
+              <mat-option *ngFor="let s of availableSuppliers" [value]="s.id">{{s.name}}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="sup-field-price">
+            <mat-label>{{ 'PRODUCT_DETAIL.PURCHASE_PRICE' | translate }}</mat-label>
+            <input matInput type="number" formControlName="purchase_price" min="0" step="0.01" placeholder="0.00">
+          </mat-form-field>
+          <mat-checkbox formControlName="is_preferred" class="sup-preferred-cb">{{ 'PRODUCT_DETAIL.PREFERRED' | translate }}</mat-checkbox>
+          <div class="add-supplier-actions">
+            <button type="button" mat-button (click)="showAddSupplier = false">{{ 'COMMON.CANCEL' | translate }}</button>
+            <button type="button" mat-raised-button color="primary" (click)="saveSupplierLink()">{{ 'COMMON.SAVE' | translate }}</button>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div *ngIf="productSuppliers.length === 0 && !showAddSupplier" class="sup-empty">
+          <mat-icon>store</mat-icon>
+          <span>{{ 'PRODUCT_DETAIL.NO_SUPPLIERS' | translate }}</span>
+        </div>
+
+        <!-- Supplier rows -->
+        <ng-container *ngFor="let s of productSuppliers; let last = last">
+
+          <!-- Edit inline form -->
+          <div *ngIf="editingSupplierId === s.id" class="add-supplier-form" [formGroup]="editSupplierForm">
+            <span class="sup-edit-name">{{s.name}}</span>
+            <mat-form-field appearance="outline" class="sup-field-price">
+              <mat-label>{{ 'PRODUCT_DETAIL.PURCHASE_PRICE' | translate }}</mat-label>
+              <input matInput type="number" formControlName="purchase_price" min="0" step="0.01" placeholder="0.00">
+            </mat-form-field>
+            <mat-checkbox formControlName="is_preferred" class="sup-preferred-cb">{{ 'PRODUCT_DETAIL.PREFERRED' | translate }}</mat-checkbox>
+            <div class="add-supplier-actions">
+              <button type="button" mat-button (click)="cancelEditSupplier()">{{ 'COMMON.CANCEL' | translate }}</button>
+              <button type="button" mat-raised-button color="primary" (click)="saveEditSupplier(s.id)">{{ 'COMMON.SAVE' | translate }}</button>
+            </div>
+          </div>
+
+          <!-- Normal row -->
+          <div class="sup-row" *ngIf="editingSupplierId !== s.id">
+            <div class="sup-avatar">{{s.name.charAt(0).toUpperCase()}}</div>
+            <div class="sup-info">
+              <span class="sup-name">
+                {{s.name}}
+                <mat-icon *ngIf="s.is_preferred" class="pref-icon" [matTooltip]="'PRODUCT_DETAIL.PREFERRED_TOOLTIP' | translate">star</mat-icon>
+              </span>
+              <span class="sup-meta" *ngIf="s.phone || s.email">
+                <span *ngIf="s.phone"><mat-icon>phone</mat-icon>{{s.phone}}</span>
+                <span *ngIf="s.email"><mat-icon>email</mat-icon>{{s.email}}</span>
+              </span>
+            </div>
+            <div class="sup-price" *ngIf="s.purchase_price != null">
+              <span class="price-val">{{s.purchase_price | number:'1.2-2'}} €</span>
+              <span class="price-lbl">{{ 'PRODUCT_DETAIL.COST_LABEL' | translate }}</span>
+            </div>
+            <div class="sup-days" *ngIf="s.delivery_days">
+              <span class="days-val">{{s.delivery_days}}</span>
+              <span class="days-lbl">{{ 'PRODUCT_DETAIL.DAYS_LABEL' | translate }}</span>
+            </div>
+            <button type="button" *ngIf="auth.isAdmin" mat-icon-button
+                    (click)="startEditSupplier(s)" [matTooltip]="'PRODUCT_DETAIL.EDIT_TOOLTIP' | translate">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button type="button" *ngIf="auth.isAdmin" mat-icon-button color="warn"
+                    (click)="removeSupplierLink(s.id)" [matTooltip]="'PRODUCT_DETAIL.REMOVE_TOOLTIP' | translate">
+              <mat-icon>link_off</mat-icon>
+            </button>
+          </div>
+
+          <mat-divider *ngIf="!last" class="sup-divider"></mat-divider>
+        </ng-container>
+
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Per-batch stock breakdown -->
+    <mat-card *ngIf="product.tracks_batches && batches.length > 0" class="batches-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon class="card-title-icon">inventory</mat-icon>
+          {{ 'PRODUCT_DETAIL.BATCHES_TITLE' | translate }}
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="batch-row" *ngFor="let b of batches">
+          <div class="batch-info">
+            <!-- normal view -->
+            <ng-container *ngIf="editingBatch !== b">
+              <span class="batch-name">
+                {{b.batch_number}}
+                <em class="batch-expiry-inline" *ngIf="b.expiry_date">&nbsp;· {{ 'PRODUCT_DETAIL.BATCH_EXPIRY' | translate }} {{b.expiry_date | date:'dd/MM/yy'}}</em>
+              </span>
+              <button type="button" *ngIf="b.id && auth.isAdmin" mat-icon-button class="batch-edit-btn"
+                      [matTooltip]="'COMMON.EDIT' | translate"
+                      (click)="startEditBatchExpiry(b)">
+                <mat-icon>edit_calendar</mat-icon>
+              </button>
+            </ng-container>
+            <!-- inline edit -->
+            <ng-container *ngIf="editingBatch === b">
+              <span class="batch-name">{{b.batch_number}}</span>
+              <div class="batch-expiry-edit">
+                <input type="date" class="batch-date-input"
+                       [(ngModel)]="editingBatchExpiry"
+                       placeholder="gg/mm/aaaa"
+                       [title]="'Data scadenza'">
+                <button type="button" mat-icon-button color="primary" (click)="saveBatchExpiry(b)" [matTooltip]="'COMMON.SAVE' | translate">
+                  <mat-icon>check</mat-icon>
+                </button>
+                <button type="button" mat-icon-button (click)="editingBatch = null" [matTooltip]="'COMMON.CANCEL' | translate">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            </ng-container>
+          </div>
+          <div class="batch-meta">
+            <span class="batch-loc"><mat-icon>{{locationIcon(b.location_name?.includes('Furgone') ? 'van' : 'warehouse')}}</mat-icon> {{b.location_name}}</span>
+            <span class="batch-qty">{{b.quantity}} {{product.unit}}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Per-location stock breakdown -->
+    <mat-card *ngIf="product.stocks && product.stocks.length > 0" class="stocks-card">
+      <mat-card-header>
+        <mat-card-title>{{ 'PRODUCT_DETAIL.STOCKS' | translate }}</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="stock-location-row" *ngFor="let s of product.stocks">
+          <mat-icon class="loc-icon">{{locationIcon(s.location_type)}}</mat-icon>
+          <span class="loc-name">{{s.location_name}}</span>
+          <span class="loc-qty">{{s.quantity}} {{product.unit}}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Movements history -->
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>{{ 'PRODUCT_DETAIL.MOVEMENTS' | translate }}</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div *ngIf="!product.movements || product.movements.length === 0" class="empty-state">
+          {{ 'PRODUCT_DETAIL.NO_MOVEMENTS' | translate }}
+        </div>
+        <div *ngFor="let m of product.movements; let last = last">
+          <div class="movement-row">
+            <mat-icon class="mov-icon" [ngClass]="movementClass(m.type)">{{movementIcon(m.type)}}</mat-icon>
+            <div class="mov-details">
+              <span class="mov-qty">{{m.type === 'scarico' ? '-' : '+'}}{{m.quantity}} {{product.unit}}</span>
+              <span class="mov-meta">
+                <span *ngIf="m.from_location_name">{{ 'MOVEMENTS.FROM' | translate }} {{m.from_location_name}}</span>
+                <span *ngIf="m.to_location_name"> → {{m.to_location_name}}</span>
+                <span *ngIf="m.notes"> &middot; {{m.notes}}</span>
+              </span>
+              <span *ngIf="m.purchase_price && m.type === 'carico'" class="mov-price">
+                <mat-icon>euro</mat-icon>{{m.purchase_price | number:'1.2-2'}} €/u
+              </span>
+              <span *ngIf="m.created_by" class="mov-author">
+                <mat-icon>person</mat-icon>{{m.created_by}}
+              </span>
+            </div>
+            <span class="mov-date">{{m.created_at | date:'dd/MM/yy HH:mm'}}</span>
+          </div>
+          <mat-divider *ngIf="!last"></mat-divider>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
+
+<!-- ── LIGHTBOX ───────────────────────────────────────────────────────────── -->
+<div class="lightbox-overlay" *ngIf="lightboxOpen && product?.photo_url"
+     (click)="lightboxOpen = false">
+  <button type="button" class="lightbox-close" (click)="lightboxOpen = false">
+    <mat-icon>close</mat-icon>
+  </button>
+  <img [src]="product!.photo_url | photoUrl" [alt]="product!.name" [title]="product!.name"
+       class="lightbox-img" (click)="$event.stopPropagation()">
+</div>
+
+<ng-template #loadingTpl>
+  <div class="text-center mt-16">
+    <mat-spinner diameter="48" style="margin:0 auto"></mat-spinner>
+  </div>
+</ng-template>

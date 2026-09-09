@@ -1,0 +1,196 @@
+<div class="dashboard-root">
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-overlay">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <!-- Error state -->
+  <div *ngIf="!loading && !stats" class="empty-state">
+    <mat-icon>error_outline</mat-icon>
+    <p>Si è verificato un errore nel caricamento della dashboard. Per favore, ricarica la pagina.</p>
+  </div>
+
+  <ng-container *ngIf="!loading && stats">
+
+    <!-- ── HERO ──────────────────────────────────────────── -->
+    <div class="hero">
+      <div class="hero-text">
+        <p class="hero-greeting">{{greeting}},</p>
+        <h1 class="hero-name">{{auth.currentUser?.name}}</h1>
+        <p class="hero-company">{{auth.currentUser?.company_name}}</p>
+      </div>
+
+      <div class="hero-stats">
+        <div class="hero-stat" [class.hero-stat--warn]="stats.low_stock_count > 0">
+          <mat-icon>{{stats.low_stock_count > 0 ? 'warning_amber' : 'check_circle'}}</mat-icon>
+          <div>
+            <span class="hero-stat-value">{{stats.low_stock_count}}</span>
+            <span class="hero-stat-label">{{ 'DASHBOARD.LOW_STOCK' | translate }}</span>
+          </div>
+        </div>
+        <div class="hero-stat hero-stat--clickable"
+             [class.hero-stat--danger]="stats.product_missing_count > 0"
+             (click)="navigate(['/jobs'], {queryParams: {product_missing: 'true'}})">
+          <mat-icon>inventory_2</mat-icon>
+          <div>
+            <span class="hero-stat-value">{{stats.product_missing_count}}</span>
+            <span class="hero-stat-label">{{ 'DASHBOARD.PRODUCT_MISSING' | translate }}</span>
+          </div>
+        </div>
+        <div class="hero-stat">
+          <mat-icon>swap_horiz</mat-icon>
+          <div>
+            <span class="hero-stat-value">{{stats.movements_today}}</span>
+            <span class="hero-stat-label">{{ 'DASHBOARD.MOVEMENTS_TODAY' | translate }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TILES ROW ─────────────────────────────────────── -->
+    <div class="tiles-row">
+
+      <!-- Action tiles -->
+      <button type="button" class="tile tile--blue" matRipple
+              (click)="navigate(['/jobs'], {queryParams: {new: '1'}})">
+        <div class="tile-icon-wrap">
+          <mat-icon>construction</mat-icon>
+        </div>
+        <span class="tile-label">{{ 'DASHBOARD.NEW_JOB' | translate }}</span>
+      </button>
+
+      <button type="button" class="tile tile--green" matRipple
+              (click)="navigate(['/movements/new'])">
+        <div class="tile-icon-wrap">
+          <mat-icon>swap_horiz</mat-icon>
+        </div>
+        <span class="tile-label">{{ 'DASHBOARD.NEW_MOVEMENT' | translate }}</span>
+      </button>
+
+      <!-- Divider -->
+      <div class="tiles-divider"></div>
+
+      <!-- KPI tiles -->
+      <button type="button" class="sec-tile" matRipple (click)="navigate(['/locations'])">
+        <mat-icon>local_shipping</mat-icon>
+        <span>{{ 'NAV.LOCATIONS' | translate }}</span>
+        <span class="sec-tile-val">{{stats.total_locations}}</span>
+      </button>
+      <button type="button" class="sec-tile" matRipple (click)="navigate(['/products'])">
+        <mat-icon>inventory_2</mat-icon>
+        <span>{{ 'NAV.PRODUCTS' | translate }}</span>
+        <span class="sec-tile-val">{{stats.total_products}}</span>
+      </button>
+      <button type="button" class="sec-tile" matRipple (click)="navigate(['/movements'])">
+        <mat-icon>history</mat-icon>
+        <span>{{ 'NAV.MOVEMENTS' | translate }}</span>
+        <span class="sec-tile-val">{{stats.total_movements | number:'1.0-0'}}</span>
+      </button>
+      <button type="button" class="sec-tile" matRipple (click)="navigate(['/products'])">
+        <mat-icon>euro</mat-icon>
+        <span>{{ 'DASHBOARD.WAREHOUSE_VALUE' | translate }}</span>
+        <span class="sec-tile-val">{{stats.total_value | currency:auth.companyCurrency:'symbol':'1.0-0'}}</span>
+      </button>
+
+    </div>
+
+    <!-- ── I MIEI LAVORI ─────────────────────────────────── -->
+    <div class="section" *ngIf="myJobs.length > 0">
+      <div class="section-header">
+        <mat-icon class="section-header-icon">work</mat-icon>
+        <span>{{ 'DASHBOARD.MY_JOBS' | translate }}</span>
+        <span class="badge-count">{{myJobs.length}}</span>
+        <a routerLink="/jobs" class="see-all">{{ 'DASHBOARD.SEE_ALL' | translate }}</a>
+      </div>
+      <div class="job-list">
+        <a *ngFor="let job of myJobs" [routerLink]="['/jobs', job.id]" class="job-row">
+          <div class="job-row-left">
+            <span class="job-row-status"
+                  [style.background]="jobStatusColor(job.status) + '22'"
+                  [style.color]="jobStatusColor(job.status)">
+              {{ jobStatusLabel(job.status) }}
+            </span>
+            <span class="job-row-title">{{ job.title }}</span>
+            <span *ngIf="job.client_name" class="job-row-client">
+              <mat-icon>person</mat-icon> {{ job.client_name }}
+            </span>
+          </div>
+          <div class="job-row-right">
+            <span *ngIf="job.scheduled_date" class="job-row-date">
+              <mat-icon>calendar_today</mat-icon>
+              {{ job.scheduled_date | date:'dd/MM' }}
+            </span>
+            <mat-icon class="job-row-arrow">chevron_right</mat-icon>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- ── EXPYRING ALERTS ─────────────────────────────────── -->
+    <div class="section section--expiring" *ngIf="expiringBatches.length > 0">
+      <div class="section-header">
+        <mat-icon class="section-header-icon warn">event_busy</mat-icon>
+        <span>Prodotti in Scadenza</span>
+        <span class="badge-count">{{expiringBatches.length}}</span>
+      </div>
+      <div class="alert-list">
+        <a *ngFor="let b of expiringBatches" [routerLink]="['/products', b.product_id]" class="alert-row">
+          <div class="alert-dot expiring"></div>
+          <div class="alert-info">
+            <span class="alert-name">{{b.product_name}} <small>({{b.batch_number}})</small></span>
+            <span class="alert-location"><mat-icon>location_on</mat-icon> {{b.location_name}}</span>
+          </div>
+          <span class="alert-qty expiring">
+            {{ 'SCADE IL' }} {{b.expiry_date | date:'dd/MM/yy'}}
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <!-- ── ALERTS (LOW STOCK) ────────────────────────────────── -->
+    <div class="section" *ngIf="alerts.length > 0">
+      <div class="section-header">
+        <mat-icon class="section-header-icon warn">warning_amber</mat-icon>
+        <span>{{ 'DASHBOARD.LOW_STOCK_SECTION' | translate }}</span>
+        <span class="badge-count">{{alerts.length}}</span>
+      </div>
+      <div class="alert-list">
+        <a *ngFor="let p of alerts" [routerLink]="['/products', p.id]" class="alert-row">
+          <div class="alert-dot" [ngClass]="stockClass(p)"></div>
+          <span class="alert-name">{{p.name}}</span>
+          <span class="alert-qty" [ngClass]="stockClass(p)">
+            {{p.quantity}} / {{p.min_stock}} {{p.unit}}
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <!-- ── RECENT MOVEMENTS ───────────────────────────────── -->
+    <div class="section">
+      <div class="section-header">
+        <mat-icon class="section-header-icon">history</mat-icon>
+        <span>{{ 'DASHBOARD.RECENT_MOVEMENTS' | translate }}</span>
+        <a routerLink="/movements" class="see-all">{{ 'DASHBOARD.SEE_ALL' | translate }}</a>
+      </div>
+
+      <div *ngIf="recentMovements.length === 0" class="empty-state">
+        {{ 'DASHBOARD.NO_MOVEMENTS' | translate }}
+      </div>
+
+      <div class="movement-list">
+        <div *ngFor="let m of recentMovements" class="movement-row">
+          <div class="movement-dot" [style.background]="movementColor(m.type)">
+            <mat-icon>{{movementIcon(m.type)}}</mat-icon>
+          </div>
+          <div class="movement-info">
+            <span class="movement-product">{{m.product_name}}</span>
+            <span class="movement-meta">{{m.quantity}} {{m.unit}} · {{m.type}}</span>
+          </div>
+          <span class="movement-date">{{m.created_at | date:'dd/MM HH:mm'}}</span>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+</div>

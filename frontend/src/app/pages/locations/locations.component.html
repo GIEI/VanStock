@@ -1,0 +1,127 @@
+<div class="page-container">
+
+  <div class="page-header">
+    <h2>{{ 'LOCATIONS.TITLE' | translate }}</h2>
+    <button mat-fab color="primary" (click)="openCreate()" aria-label="Nuova posizione">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+
+  <!-- Inline form -->
+  <mat-card *ngIf="showForm" class="mb-16 form-card">
+    <mat-card-header>
+      <mat-card-title>{{ (editingId ? 'LOCATIONS.EDIT_TITLE' : 'LOCATIONS.NEW_TITLE') | translate }}</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'LOCATIONS.NAME' | translate }} *</mat-label>
+            <input matInput formControlName="name" placeholder="{{ 'LOCATIONS.NAME_PLACEHOLDER' | translate }}">
+            <mat-error>{{ 'LOCATIONS.REQUIRED' | translate }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'LOCATIONS.TYPE' | translate }} *</mat-label>
+            <mat-select formControlName="type">
+              <mat-option *ngFor="let t of locationTypes" [value]="t.value">
+                <mat-icon>{{t.icon}}</mat-icon> {{t.labelKey | translate}}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'LOCATIONS.STATUS' | translate }}</mat-label>
+            <mat-select formControlName="status">
+              <mat-option *ngFor="let s of vanStatuses" [value]="s.value">{{s.labelKey | translate}}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" *ngIf="!usesAddress">
+            <mat-label>{{ 'LOCATIONS.PLATE' | translate }}</mat-label>
+            <input matInput formControlName="plate" placeholder="{{ 'LOCATIONS.PLATE_PLACEHOLDER' | translate }}">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" *ngIf="usesAddress">
+            <mat-label>{{ 'LOCATIONS.ADDRESS' | translate }}</mat-label>
+            <input matInput formControlName="address" placeholder="{{ 'LOCATIONS.ADDRESS_PLACEHOLDER' | translate }}">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'LOCATIONS.DESCRIPTION' | translate }}</mat-label>
+            <input matInput formControlName="description">
+          </mat-form-field>
+        </div>
+
+        <div class="form-actions">
+          <button mat-button type="button" (click)="cancel()">{{ 'LOCATIONS.CANCEL' | translate }}</button>
+          <button mat-raised-button color="primary" type="submit">
+            {{ (editingId ? 'LOCATIONS.UPDATE' : 'LOCATIONS.CREATE') | translate }}
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center"><mat-spinner diameter="40" style="margin:0 auto"></mat-spinner></div>
+
+  <!-- Locations list -->
+  <div class="locations-grid" *ngIf="!loading">
+
+    <div *ngIf="locations.length === 0" class="empty-state">
+      <mat-icon>local_shipping</mat-icon>
+      <p>{{ 'LOCATIONS.EMPTY' | translate }}</p>
+    </div>
+
+    <mat-card *ngFor="let loc of locations" class="location-card">
+      <mat-card-content>
+        <div class="loc-header">
+          <div class="loc-icon-wrap" [attr.data-type]="loc.type">
+            <mat-icon>{{typeInfo(loc.type).icon}}</mat-icon>
+          </div>
+          <div class="loc-info">
+            <div class="loc-name">{{loc.name}}</div>
+            <div class="loc-meta">
+              <span class="loc-type-badge">{{typeInfo(loc.type).labelKey | translate}}</span>
+              <span *ngIf="loc.plate && loc.type !== 'warehouse' && loc.type !== 'site'" class="loc-plate">{{loc.plate}}</span>
+              <span *ngIf="loc.address && (loc.type === 'warehouse' || loc.type === 'site')" class="loc-plate">{{loc.address}}</span>
+              <span class="loc-status-badge" [attr.data-status]="loc.status">{{statusInfo(loc.status).labelKey | translate}}</span>
+            </div>
+            <div *ngIf="loc.description" class="loc-desc">{{loc.description}}</div>
+          </div>
+        </div>
+
+        <div class="loc-stats">
+          <div class="stat">
+            <span class="stat-val">{{loc.product_count ?? 0}}</span>
+            <span class="stat-lbl">{{ 'LOCATIONS.PRODUCTS' | translate }}</span>
+          </div>
+          <div class="stat">
+            <span class="stat-val">{{loc.total_items ?? 0 | number:'1.0-1'}}</span>
+            <span class="stat-lbl">{{ 'LOCATIONS.ARTICLES' | translate }}</span>
+          </div>
+        </div>
+
+        <div class="loc-actions">
+          <a mat-stroked-button [routerLink]="['/products']" [queryParams]="{location_id: loc.id}">
+            <mat-icon>inventory_2</mat-icon> {{ 'LOCATIONS.PRODUCTS_BTN' | translate }}
+          </a>
+          <button mat-icon-button type="button" [matMenuTriggerFor]="statusMenu" [title]="'LOCATIONS.CHANGE_STATUS' | translate">
+            <mat-icon>swap_horiz</mat-icon>
+          </button>
+          <mat-menu #statusMenu="matMenu">
+            <button mat-menu-item *ngFor="let s of vanStatuses"
+                    (click)="updateStatus(loc, s.value)"
+                    [disabled]="loc.status === s.value">
+              {{s.labelKey | translate}}
+            </button>
+          </mat-menu>
+          <button mat-icon-button (click)="openEdit(loc)"><mat-icon>edit</mat-icon></button>
+          <button mat-icon-button color="warn" (click)="delete(loc)"><mat-icon>delete</mat-icon></button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+</div>

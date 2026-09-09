@@ -1,0 +1,576 @@
+<div class="page-container" *ngIf="!loading && job">
+
+  <!-- ── HEADER ───────────────────────────────────────────────────────────── -->
+  <div class="job-hero">
+    <div class="job-hero-top">
+      <button mat-icon-button routerLink="/jobs" class="back-btn">
+        <mat-icon>arrow_back</mat-icon>
+      </button>
+      <div class="job-title-block">
+        <h2>{{ job.title }}</h2>
+        <span class="status-badge"
+              [style.background]="statusInfo(job.status).color + '22'"
+              [style.color]="statusInfo(job.status).color">
+          {{ statusInfo(job.status).label }}
+        </span>
+        <span *ngIf="job.priority && job.priority !== 'normale'"
+              class="priority-badge"
+              [style.background]="priorityInfo(job.priority).color + '22'"
+              [style.color]="priorityInfo(job.priority).color">
+          <mat-icon class="priority-icon">{{ priorityInfo(job.priority).icon }}</mat-icon>
+          {{ priorityInfo(job.priority).label }}
+        </span>
+      </div>
+    </div>
+
+    <div class="job-meta-grid">
+      <div *ngIf="job.client_name" class="meta-item">
+        <mat-icon>person</mat-icon>
+        <div>
+          <span class="meta-label">{{ 'JOB_DETAIL.CLIENT' | translate }}</span>
+          <span class="meta-value">{{ job.client_name }}</span>
+          <span *ngIf="job.client_phone" class="meta-sub">{{ job.client_phone }}</span>
+        </div>
+      </div>
+      <div *ngIf="job.address" class="meta-item">
+        <mat-icon>location_on</mat-icon>
+        <div>
+          <span class="meta-label">{{ 'JOB_DETAIL.ADDRESS' | translate }}</span>
+          <span class="meta-value">{{ job.address }}</span>
+        </div>
+      </div>
+      <div *ngIf="job.scheduled_date" class="meta-item">
+        <mat-icon>calendar_today</mat-icon>
+        <div>
+          <span class="meta-label">{{ 'JOB_DETAIL.SCHEDULED_DATE' | translate }}</span>
+          <span class="meta-value">
+            {{ job.scheduled_date | date:'dd MMMM yyyy' }}
+            <span *ngIf="job.scheduled_time" class="time-badge">{{ getTimeLabel(job.scheduled_time, job.scheduled_time_custom) }}</span>
+          </span>
+        </div>
+      </div>
+      <div *ngIf="job.assigned_to_name" class="meta-item">
+        <mat-icon>engineering</mat-icon>
+        <div>
+          <span class="meta-label">{{ 'JOB_DETAIL.ASSIGNED_TO' | translate }}</span>
+          <span class="meta-value">{{ job.assigned_to_name }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="job.description" class="job-description">
+      <mat-icon>description</mat-icon>
+      <p>{{ job.description }}</p>
+    </div>
+
+    <!-- ── WORKFLOW STEPS ────────────────────────────────────────────────── -->
+    <div class="workflow-steps" *ngIf="job.status === 'in_corso' || job.status === 'completato'">
+      <div class="step" [class.step--done]="job.started_at">
+        <div class="step-dot">
+          <mat-icon>{{ job.started_at ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+        </div>
+        <span class="step-label">{{ 'JOB_DETAIL.STEP_ARRIVAL' | translate }}</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" [class.step--done]="problemPhotos.length > 0">
+        <div class="step-dot">
+          <mat-icon>{{ problemPhotos.length > 0 ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+        </div>
+        <span class="step-label">{{ 'JOB_DETAIL.STEP_PROBLEM_PHOTO' | translate }}</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" [class.step--done]="job.movements && job.movements.length > 0">
+        <div class="step-dot">
+          <mat-icon>{{ (job.movements && job.movements.length > 0) ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+        </div>
+        <span class="step-label">{{ 'JOB_DETAIL.STEP_MATERIAL' | translate }}</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" [class.step--done]="repairPhotos.length > 0">
+        <div class="step-dot">
+          <mat-icon>{{ repairPhotos.length > 0 ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+        </div>
+        <span class="step-label">{{ 'JOB_DETAIL.STEP_REPAIR_PHOTO' | translate }}</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" [class.step--done]="job.status === 'completato'">
+        <div class="step-dot">
+          <mat-icon>{{ job.status === 'completato' ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+        </div>
+        <span class="step-label">{{ 'JOB_DETAIL.STEP_COMPLETED' | translate }}</span>
+      </div>
+    </div>
+
+    <!-- ── FURGONE ASSEGNATO ───────────────────────────────────────────── -->
+    <div *ngIf="job.vehicle_booking" class="vehicle-booking-info">
+      <mat-icon>local_shipping</mat-icon>
+      <div>
+        <span class="vb-label">{{ 'JOB_DETAIL.VEHICLE_BOOKED' | translate }}</span>
+        <span class="vb-van">{{ job.vehicle_booking.van_name }}
+          <span *ngIf="job.vehicle_booking.van_plate" class="vb-plate">{{ job.vehicle_booking.van_plate }}</span>
+        </span>
+        <span class="vb-meta">
+          {{ job.vehicle_booking.date | date:'dd/MM/yyyy' }} ·
+          {{ job.vehicle_booking.start_time }} - {{ job.vehicle_booking.end_time }}
+          <span *ngIf="job.vehicle_booking.booked_by_name"> · {{ 'COMMON.BY' | translate }} {{ job.vehicle_booking.booked_by_name }}</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- ── PICKER FURGONE (al click Accetta) ─────────────────────────── -->
+    <div *ngIf="showVehiclePicker && canAccept" class="vehicle-picker">
+      <h4><mat-icon>local_shipping</mat-icon> {{ 'JOB_DETAIL.SELECT_VEHICLE' | translate }}</h4>
+
+      <div class="time-range-picker">
+        <mat-form-field>
+          <mat-label>Inizio prenotazione</mat-label>
+          <input matInput type="time" [(ngModel)]="selectedStartTime" (change)="onPeriodChange()">
+        </mat-form-field>
+        <mat-form-field>
+          <mat-label>Fine prenotazione</mat-label>
+          <input matInput type="time" [(ngModel)]="selectedEndTime" (change)="onPeriodChange()">
+          <mat-error *ngIf="selectedStartTime && selectedEndTime && selectedStartTime >= selectedEndTime">
+            L'orario di fine non può essere antecedente a quello di inizio
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <div *ngIf="loadingVans" class="spinner-center">
+        <mat-spinner diameter="32"></mat-spinner>
+      </div>
+
+      <!-- Mandatory van selection (user has overlapping booking) -->
+      <div *ngIf="!loadingVans && existingBooking && mustUseVanId" class="mandatory-van-container">
+        <div class="mandatory-van-message">
+          <mat-icon class="info-icon">info</mat-icon>
+          <div class="message-text">
+            <strong>Questo furgone è già occupato da te per questo orario</strong>
+            <p>Verrà automaticamente selezionato il seguente furgone:</p>
+          </div>
+        </div>
+
+        <div class="mandatory-van-card">
+          <mat-icon class="van-icon">local_shipping</mat-icon>
+          <div class="van-details">
+            <span class="van-name">{{ availableVans[0].name }}</span>
+            <span class="van-plate" *ngIf="availableVans[0].plate">Targa: {{ availableVans[0].plate }}</span>
+            <span class="booking-time" *ngIf="existingBooking">
+              Prenotazione: {{ existingBooking.date | date:'dd/MM/yyyy' }}
+              {{ existingBooking.start_time }} - {{ existingBooking.end_time }}
+            </span>
+          </div>
+          <span class="your-van-badge">Tuo</span>
+        </div>
+      </div>
+
+      <div *ngIf="!loadingVans && !existingBooking && availableVans.length === 0" class="no-vans">
+        <mat-icon>no_transfer</mat-icon>
+        <span>{{ 'JOB_DETAIL.NO_VEHICLES' | translate }}</span>
+      </div>
+
+      <div class="van-list" *ngIf="!loadingVans && availableVans.length > 0 && !(existingBooking && mustUseVanId)">
+        <button *ngFor="let van of availableVans"
+                type="button"
+                class="van-option"
+                [class.selected]="selectedVanId === van.id"
+                [class.owned]="van.owned"
+                (click)="selectedVanId = van.id">
+          <mat-icon>local_shipping</mat-icon>
+          <span class="van-name">{{ van.name }}</span>
+          <span *ngIf="van.plate" class="van-plate">{{ van.plate }}</span>
+          <span *ngIf="van.owned" class="owned-badge">Tuo</span>
+          <mat-icon *ngIf="selectedVanId === van.id" class="check-icon">check_circle</mat-icon>
+        </button>
+      </div>
+
+      <div class="picker-actions">
+        <button mat-button type="button" (click)="cancelVehiclePicker()">{{ 'COMMON.CANCEL' | translate }}</button>
+        <button mat-raised-button color="primary" type="button"
+                [disabled]="!selectedVanId || saving"
+                (click)="confirmAccept()">
+          <mat-icon>play_circle</mat-icon>
+          {{ saving ? ('COMMON.SAVING' | translate) : ('JOB_DETAIL.CONFIRM_ACCEPT' | translate) }}
+        </button>
+      </div>
+    </div>
+
+    <!-- ── AZIONI STATO ──────────────────────────────────────────────────── -->
+    <div class="status-actions" *ngIf="isAssigned || isAdmin">
+
+      <!-- Accetta lavoro -->
+      <button mat-raised-button color="primary" type="button"
+              *ngIf="canAccept && !showVehiclePicker"
+              (click)="openVehiclePicker()">
+        <mat-icon>play_circle</mat-icon>
+        {{ 'JOB_DETAIL.ACCEPT_JOB' | translate }}
+      </button>
+
+      <!-- Registra arrivo -->
+      <button mat-raised-button color="primary" type="button"
+              *ngIf="job.status === 'in_corso' && !job.started_at"
+              [disabled]="saving"
+              (click)="startWork()">
+        <mat-icon>location_on</mat-icon>
+        {{ saving ? ('COMMON.SAVING' | translate) : ('JOB_DETAIL.RECORD_ARRIVAL' | translate) }}
+      </button>
+
+      <!-- Firma e Chiudi lavoro -->
+      <button mat-raised-button color="accent" type="button"
+              *ngIf="canClose"
+              [disabled]="saving"
+              (click)="openSignatureDialog()">
+        <mat-icon>draw</mat-icon>
+        {{ 'JOB_DETAIL.SIGN_AND_CLOSE' | translate }}
+      </button>
+
+      <button mat-stroked-button color="warn" type="button"
+              *ngIf="canAccept || canClose"
+              (click)="setStatus('annullato')">
+        <mat-icon>cancel</mat-icon>
+        {{ 'JOB_DETAIL.CANCEL_JOB' | translate }}
+      </button>
+    </div>
+  </div>
+
+  <!-- ── STATUS BADGES ROW ────────────────────────────────────────────────── -->
+  <div class="job-status-row">
+    <div *ngIf="job.started_at" class="status-badge-item">
+      <mat-icon>access_time</mat-icon>
+      <span>{{ 'JOB_DETAIL.ARRIVED_AT' | translate }} {{ job.started_at | date:'HH:mm' }}</span>
+      <span class="badge-date">{{ job.started_at | date:'dd/MM' }}</span>
+    </div>
+
+    <div *ngIf="job.completed_at" class="status-badge-item">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ 'JOB_DETAIL.COMPLETED_AT' | translate }} {{ job.completed_at | date:'HH:mm' }}</span>
+      <span class="badge-date">{{ job.completed_at | date:'dd/MM' }}</span>
+    </div>
+
+    <div *ngIf="job.signed_at" class="status-badge-item signed">
+      <mat-icon>verified</mat-icon>
+      <span>{{ 'JOB_DETAIL.SIGNED_AT' | translate }} {{ job.signed_at | date:'HH:mm' }}</span>
+      <span class="badge-date">{{ job.signed_at | date:'dd/MM' }}</span>
+      <a *ngIf="job.customer_signature_url"
+         [href]="job.customer_signature_url | photoUrl"
+         target="_blank"
+         rel="noopener"
+         mat-icon-button
+         class="sig-view-btn"
+         [matTooltip]="'JOB_DETAIL.VIEW_SIGNATURE' | translate">
+        <mat-icon>open_in_new</mat-icon>
+      </a>
+    </div>
+
+    <button *ngIf="job.signed_at" mat-raised-button color="primary" type="button" (click)="downloadReport()" class="download-btn">
+      <mat-icon>picture_as_pdf</mat-icon>
+      {{ 'JOB_DETAIL.DOWNLOAD_REPORT' | translate }}
+    </button>
+  </div>
+
+  <!-- ── TABS ─────────────────────────────────────────────────────────────── -->
+  <mat-tab-group animationDuration="150ms">
+
+    <!-- TAB 1: Verifica disponibilità -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">inventory_2</mat-icon>
+        {{ 'JOB_DETAIL.TAB_STOCK' | translate }}
+      </ng-template>
+
+      <div class="tab-content">
+        <p class="tab-hint">{{ 'JOB_DETAIL.TAB_STOCK_HINT' | translate }}</p>
+
+        <div class="stock-filters">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'JOB_DETAIL.LOCATION_TO_CHECK' | translate }}</mat-label>
+            <mat-select [(ngModel)]="stockLocationId" (ngModelChange)="checkStock()">
+              <mat-option [value]="null">{{ 'COMMON.SELECT' | translate }}</mat-option>
+              <mat-option *ngFor="let l of locations" [value]="l.id">{{ l.name }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="stock-search">
+            <mat-label>{{ 'JOB_DETAIL.SEARCH_PRODUCT' | translate }}</mat-label>
+            <mat-icon matPrefix>search</mat-icon>
+            <input matInput [(ngModel)]="stockQuery" (ngModelChange)="checkStock()"
+                   placeholder="Nome, SKU, barcode…">
+          </mat-form-field>
+        </div>
+
+        <div *ngIf="checkingStock" class="spinner-center"><mat-spinner diameter="36"></mat-spinner></div>
+
+        <div *ngIf="!checkingStock && stockLocationId && stockProducts.length === 0" class="empty-hint">
+          <mat-icon>search_off</mat-icon>
+          <p>{{ 'JOB_DETAIL.NO_PRODUCTS_FOUND' | translate }}</p>
+        </div>
+
+        <div class="stock-list" *ngIf="!checkingStock && stockProducts.length > 0">
+          <div *ngFor="let p of stockProducts" class="stock-row" [class]="'stock-row--' + stockLevel(p)">
+            <div class="stock-level-dot" [class]="'dot--' + stockLevel(p)"></div>
+            <div class="stock-info">
+              <span class="stock-name">{{ p.name }}</span>
+              <span class="stock-sku">{{ p.sku }}</span>
+            </div>
+            <div class="stock-qty">
+              <span class="qty-val">{{ p.quantity }}</span>
+              <span class="qty-unit">{{ p.unit }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- TAB 2: Registra movimento -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">swap_horiz</mat-icon>
+        {{ 'JOB_DETAIL.TAB_MOVEMENT' | translate }}
+      </ng-template>
+
+      <div class="tab-content">
+        <p class="tab-hint">
+          {{ 'JOB_DETAIL.MOV_HINT' | translate }}
+        </p>
+
+        <form [formGroup]="movForm" (ngSubmit)="saveMovement()" class="mov-form">
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'JOB_DETAIL.MOV_TYPE' | translate }}</mat-label>
+            <mat-select formControlName="type">
+              <mat-option *ngFor="let t of movTypes" [value]="t.value">
+                <mat-icon>{{ t.icon }}</mat-icon> {{ t.label }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'JOB_DETAIL.MOV_PRODUCT' | translate }}</mat-label>
+            <mat-select formControlName="product_id">
+              <mat-option *ngFor="let p of allProducts" [value]="p.id">
+                {{ p.name }} 
+                <span class="sku-hint"> · {{ p.sku }}</span>
+                <span class="qty-hint" *ngIf="p.quantity !== undefined"> — Disp: {{ p.quantity }} {{ p.unit }}</span>
+              </mat-option>
+            </mat-select>
+            <mat-error>{{ 'JOB_DETAIL.SELECT_PRODUCT' | translate }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'JOB_DETAIL.MOV_QUANTITY' | translate }}</mat-label>
+            <input matInput type="number" formControlName="quantity" min="0.01" step="1" placeholder="0" [title]="'JOB_DETAIL.MOV_QUANTITY' | translate">
+            <mat-error>{{ 'JOB_DETAIL.QUANTITY_INVALID' | translate }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" *ngIf="movNeedsFrom">
+            <mat-label>{{ 'JOB_DETAIL.FROM_LOCATION' | translate }}</mat-label>
+            <mat-select formControlName="from_location_id">
+              <mat-option [value]="null" *ngIf="!job?.vehicle_booking">{{ 'COMMON.SELECT' | translate }}</mat-option>
+              <mat-option *ngFor="let l of filteredFromLocations" [value]="l.id">{{ l.name }}</mat-option>
+            </mat-select>
+            <mat-error>{{ 'JOB_DETAIL.SELECT_FROM' | translate }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" *ngIf="movNeedsTo">
+            <mat-label>{{ 'JOB_DETAIL.TO_LOCATION' | translate }}</mat-label>
+            <mat-select formControlName="to_location_id">
+              <mat-option [value]="null">{{ 'COMMON.SELECT' | translate }}</mat-option>
+              <mat-option *ngFor="let l of filteredToLocations" [value]="l.id">{{ l.name }}</mat-option>
+            </mat-select>
+            <mat-error>{{ 'JOB_DETAIL.SELECT_TO' | translate }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'JOB_DETAIL.NOTES_OPTIONAL' | translate }}</mat-label>
+            <input matInput formControlName="notes" [title]="'JOB_DETAIL.NOTES_OPTIONAL' | translate" [placeholder]="'JOB_DETAIL.NOTES_HINT' | translate">
+          </mat-form-field>
+
+          <!-- ── BATCH & EXPIRY ────────────────────────────────────────────── -->
+          <div class="batch-section" *ngIf="selectedProduct?.tracks_batches || movForm.get('batch_number')?.value">
+            <div class="batch-fields">
+              <mat-form-field appearance="outline">
+                <mat-label>Numero Lotto</mat-label>
+                <input matInput formControlName="batch_number" placeholder="es. L001">
+              </mat-form-field>
+              
+              <mat-form-field appearance="outline">
+                <mat-label>Data Scadenza</mat-label>
+                <input matInput type="date" formControlName="expiry_date">
+              </mat-form-field>
+            </div>
+
+            <div *ngIf="availableBatches.length > 0" class="available-batches">
+              <span class="batch-title">Lotti disponibili qui:</span>
+              <div class="batch-chips">
+                <div *ngFor="let b of availableBatches" 
+                     class="batch-chip" 
+                     (click)="onBatchSelect(b)"
+                     [class.selected]="movForm.get('batch_number')?.value === b.batch_number">
+                  <span class="b-name">{{ b.batch_number }}</span>
+                  <span class="b-qty"> ({{ b.quantity }})</span>
+                  <span class="b-exp" *ngIf="b.expiry_date">Scad: {{ b.expiry_date | date:'dd/MM/yy' }}</span>
+                </div>
+              </div>
+            </div>
+            <div *ngIf="loadingBatches" class="spinner-center"><mat-spinner diameter="20"></mat-spinner></div>
+          </div>
+
+          <div class="mov-form-actions">
+            <button mat-raised-button color="primary" type="submit" [disabled]="movSaving">
+              <mat-icon>save</mat-icon>
+              {{ movSaving ? ('COMMON.SAVING' | translate) : ('JOB_DETAIL.RECORD_MOVEMENT' | translate) }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </mat-tab>
+
+    <!-- TAB 3: Foto intervento -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">photo_camera</mat-icon>
+        {{ 'JOB_DETAIL.TAB_PHOTOS' | translate }} ({{ (job.photos?.length ?? 0) }})
+      </ng-template>
+
+      <div class="tab-content">
+
+        <!-- Foto problema -->
+        <div class="photo-section">
+          <div class="photo-section-header">
+            <mat-icon class="photo-section-icon problem-icon">report_problem</mat-icon>
+            <span>{{ 'JOB_DETAIL.PROBLEM_PHOTOS' | translate }}</span>
+            <span class="photo-count">{{ problemPhotos.length }}</span>
+          </div>
+
+          <div class="photo-grid" *ngIf="problemPhotos.length > 0">
+            <div *ngFor="let p of problemPhotos" class="photo-thumb">
+              <video *ngIf="isVideo(p.url)"
+                     [src]="photoUrl(p.url)" controls playsinline preload="metadata"
+                     [title]="p.filename || ('JOB_DETAIL.PROBLEM_PHOTOS' | translate)"></video>
+              <img *ngIf="!isVideo(p.url)"
+                   [src]="photoUrl(p.url)" [alt]="p.filename || ('JOB_DETAIL.PROBLEM_PHOTOS' | translate)"
+                   [title]="p.filename || ('JOB_DETAIL.PROBLEM_PHOTOS' | translate)" loading="lazy">
+              <button *ngIf="isAssigned || isAdmin"
+                      mat-icon-button type="button" class="photo-delete-btn"
+                      (click)="deletePhoto(p)" [title]="'JOB_DETAIL.DELETE_PHOTO' | translate">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <div *ngIf="problemPhotos.length === 0" class="photo-empty">
+            <mat-icon>add_a_photo</mat-icon>
+            <span>{{ 'JOB_DETAIL.NO_PROBLEM_PHOTOS' | translate }}</span>
+          </div>
+
+          <label *ngIf="(isAssigned || isAdmin) && job.status === 'in_corso'"
+                 class="photo-upload-btn"
+                 [class.uploading]="uploadingPhoto === 'problem'">
+            <mat-icon>{{ uploadingPhoto === 'problem' ? 'hourglass_empty' : 'add_a_photo' }}</mat-icon>
+            {{ uploadingPhoto === 'problem' ? ('JOB_DETAIL.UPLOADING' | translate) : ('JOB_DETAIL.ADD_PROBLEM_PHOTO' | translate) }}
+            <input type="file" accept="image/*,video/*"
+                   (change)="onFileSelected($event, 'problem')"
+                   [disabled]="!!uploadingPhoto" hidden>
+          </label>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Foto riparazione -->
+        <div class="photo-section">
+          <div class="photo-section-header">
+            <mat-icon class="photo-section-icon repair-icon">build_circle</mat-icon>
+            <span>{{ 'JOB_DETAIL.REPAIR_PHOTOS' | translate }}</span>
+            <span class="photo-count">{{ repairPhotos.length }}</span>
+          </div>
+
+          <div class="photo-grid" *ngIf="repairPhotos.length > 0">
+            <div *ngFor="let p of repairPhotos" class="photo-thumb">
+              <video *ngIf="isVideo(p.url)"
+                     [src]="photoUrl(p.url)" controls preload="metadata"
+                     [title]="p.filename || ('JOB_DETAIL.REPAIR_PHOTOS' | translate)"></video>
+              <img *ngIf="!isVideo(p.url)"
+                   [src]="photoUrl(p.url)" [alt]="p.filename || ('JOB_DETAIL.REPAIR_PHOTOS' | translate)"
+                   [title]="p.filename || ('JOB_DETAIL.REPAIR_PHOTOS' | translate)" loading="lazy">
+              <button *ngIf="isAssigned || isAdmin"
+                      mat-icon-button type="button" class="photo-delete-btn"
+                      (click)="deletePhoto(p)" [title]="'JOB_DETAIL.DELETE_PHOTO' | translate">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <div *ngIf="repairPhotos.length === 0" class="photo-empty">
+            <mat-icon>add_a_photo</mat-icon>
+            <span>{{ 'JOB_DETAIL.NO_REPAIR_PHOTOS' | translate }}</span>
+          </div>
+
+          <label *ngIf="(isAssigned || isAdmin) && job.status === 'in_corso'"
+                 class="photo-upload-btn"
+                 [class.uploading]="uploadingPhoto === 'repair'">
+            <mat-icon>{{ uploadingPhoto === 'repair' ? 'hourglass_empty' : 'add_a_photo' }}</mat-icon>
+            {{ uploadingPhoto === 'repair' ? ('JOB_DETAIL.UPLOADING' | translate) : ('JOB_DETAIL.ADD_REPAIR_PHOTO' | translate) }}
+            <input type="file" accept="image/*,video/*"
+                   (change)="onFileSelected($event, 'repair')"
+                   [disabled]="!!uploadingPhoto" hidden>
+          </label>
+        </div>
+
+      </div>
+    </mat-tab>
+
+    <!-- TAB 4: Storico movimenti -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">history</mat-icon>
+        {{ 'JOB_DETAIL.TAB_HISTORY' | translate }} ({{ job.movements?.length ?? 0 }})
+      </ng-template>
+
+      <div class="tab-content">
+
+        <div *ngIf="!job.movements?.length" class="empty-hint">
+          <mat-icon>inbox</mat-icon>
+          <p>{{ 'JOB_DETAIL.NO_MOVEMENTS' | translate }}</p>
+        </div>
+
+        <div class="mov-list" *ngIf="job.movements?.length">
+          <div *ngFor="let m of job.movements" class="mov-row">
+            <div class="mov-dot" [attr.data-type]="m.type">
+              <mat-icon>{{ movIcon(m.type) }}</mat-icon>
+            </div>
+            <div class="mov-info">
+              <span class="mov-product">{{ m.product_name }}</span>
+              <span class="mov-meta">
+                {{ m.quantity }} {{ m.unit }} · {{ m.type }}
+                <span *ngIf="m.from_location_name"> {{ 'JOB_DETAIL.MOV_FROM' | translate }} {{ m.from_location_name }}</span>
+                <span *ngIf="m.to_location_name"> → {{ m.to_location_name }}</span>
+              </span>
+              <span *ngIf="m.notes" class="mov-notes">{{ m.notes }}</span>
+              <span *ngIf="m.created_by" class="mov-author">
+                <mat-icon>person</mat-icon>{{ m.created_by }}
+              </span>
+            </div>
+            <span class="mov-date">{{ m.created_at | date:'dd/MM HH:mm' }}</span>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+    
+    <!-- TAB 5: Messaggi / Note -->
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <mat-icon class="tab-icon">chat</mat-icon>
+        Note / Chat
+      </ng-template>
+
+      <div class="tab-content" style="padding: 1rem 0;">
+        <app-job-chat [jobId]="job.id"></app-job-chat>
+      </div>
+    </mat-tab>
+
+  </mat-tab-group>
+
+</div>
+
+<div *ngIf="loading" class="page-loading">
+  <mat-spinner diameter="48"></mat-spinner>
+</div>

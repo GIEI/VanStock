@@ -1,0 +1,288 @@
+<div class="sched-page">
+
+  <!-- ── HEADER ─────────────────────────────────────────────────────────────── -->
+  <div class="sched-header">
+    <div class="week-nav">
+      <button type="button" mat-icon-button (click)="prevWeek()" [matTooltip]="'SCHEDULING.PREV_WEEK' | translate">
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      <span class="week-label">{{ weekLabel }}</span>
+      <button type="button" mat-icon-button (click)="nextWeek()" [matTooltip]="'SCHEDULING.NEXT_WEEK' | translate">
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+      <button type="button" mat-stroked-button (click)="goToday()" class="today-btn">
+        <mat-icon>today</mat-icon> {{ 'SCHEDULING.TODAY' | translate }}
+      </button>
+    </div>
+
+    <button type="button" mat-raised-button color="primary" (click)="openNewJob()" class="new-job-btn">
+      <mat-icon>add</mat-icon> {{ 'JOBS.NEW' | translate }}
+    </button>
+
+    <mat-form-field appearance="outline" class="user-filter">
+      <mat-label>{{ 'SCHEDULING.OPERATOR' | translate }}</mat-label>
+      <mat-select [(ngModel)]="filterUserId" (ngModelChange)="load()">
+        <mat-option [value]="null">{{ 'SCHEDULING.ALL_WORKERS' | translate }}</mat-option>
+        <mat-option *ngFor="let u of users" [value]="u.id">{{ u.name }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <!-- ── SPINNER ────────────────────────────────────────────────────────────── -->
+  <div *ngIf="loading" class="spinner-wrap">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+
+  <!-- ── CALENDAR ───────────────────────────────────────────────────────────── -->
+  <div class="calendar-outer" *ngIf="!loading" cdkDropListGroup>
+
+    <!-- Unscheduled -->
+    <div class="day-col unscheduled-col">
+      <div class="day-header unscheduled-header">
+        <mat-icon>event_busy</mat-icon>
+        <span>{{ 'SCHEDULING.UNSCHEDULED' | translate }}</span>
+        <span class="job-count" *ngIf="unscheduled.length">{{ unscheduled.length }}</span>
+      </div>
+      <div class="day-body"
+           cdkDropList
+           id="unscheduled"
+           [cdkDropListData]="unscheduled"
+           (cdkDropListDropped)="drop($event)">
+
+        <div *ngFor="let job of unscheduled"
+             class="job-chip"
+             [class.selected]="selectedJob?.id === job.id"
+             [class.locked]="isLocked(job)"
+             cdkDrag
+             [cdkDragDisabled]="isLocked(job)"
+             [cdkDragData]="job"
+             (click)="selectJob(job)">
+          <ng-container *ngTemplateOutlet="jobCard; context: { job: job }"></ng-container>
+        </div>
+
+        <div *ngIf="unscheduled.length === 0" class="empty-slot">
+          <mat-icon>check_circle_outline</mat-icon>
+          <span>{{ 'SCHEDULING.ALL_SCHEDULED' | translate }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Day columns -->
+    <div *ngFor="let day of days"
+         class="day-col"
+         [class.today-col]="day.isToday"
+         [class.weekend-col]="day.isWeekend">
+
+      <div class="day-header" [class.today-header]="day.isToday">
+        <span class="day-label">{{ day.label }}</span>
+        <span class="job-count" *ngIf="day.jobs.length">{{ day.jobs.length }}</span>
+      </div>
+
+      <div class="day-body"
+           cdkDropList
+           [id]="'day-' + day.dateStr"
+           [cdkDropListData]="day.jobs"
+           (cdkDropListDropped)="drop($event)">
+
+        <div *ngFor="let job of day.jobs"
+             class="job-chip"
+             [class.selected]="selectedJob?.id === job.id"
+             [class.locked]="isLocked(job)"
+             cdkDrag
+             [cdkDragDisabled]="isLocked(job)"
+             [cdkDragData]="job"
+             (click)="selectJob(job)">
+          <ng-container *ngTemplateOutlet="jobCard; context: { job: job }"></ng-container>
+        </div>
+
+        <div *ngIf="day.jobs.length === 0" class="empty-slot drop-hint">
+          <mat-icon>add</mat-icon>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── NEW JOB PANEL ──────────────────────────────────────────────────────── -->
+  <div class="edit-panel" *ngIf="newJobMode">
+    <div class="edit-panel-header">
+      <mat-icon>add_circle_outline</mat-icon>
+      <span class="edit-panel-title">{{ 'JOBS.NEW' | translate }}</span>
+      <button type="button" mat-icon-button (click)="cancelNew()" [matTooltip]="'COMMON.CANCEL' | translate">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <div class="new-job-body">
+
+      <!-- row 1: Title, Client, Worker, Priority, Status -->
+      <div class="new-job-row">
+        <mat-form-field appearance="outline" class="nf-title">
+          <mat-label>{{ 'JOBS.TITLE_FIELD' | translate }} *</mat-label>
+          <input matInput [(ngModel)]="newTitle" placeholder="Es. Installazione impianto" maxlength="200">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="nf-field">
+          <mat-label>{{ 'JOBS.CLIENT' | translate }}</mat-label>
+          <mat-select [(ngModel)]="newClientId">
+            <mat-option [value]="null">{{ 'JOBS.NONE' | translate }}</mat-option>
+            <mat-option *ngFor="let c of clients" [value]="c.id">{{ c.name }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="nf-field">
+          <mat-label>{{ 'JOBS.ASSIGNED_TO' | translate }}</mat-label>
+          <mat-select [(ngModel)]="newAssignedTo">
+            <mat-option [value]="null">{{ 'JOBS.NONE' | translate }}</mat-option>
+            <mat-option *ngFor="let u of users" [value]="u.id">{{ u.name }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="nf-field">
+          <mat-label>{{ 'JOBS.PRIORITY' | translate }}</mat-label>
+          <mat-select [(ngModel)]="newPriority">
+            <mat-option *ngFor="let p of priorityOptions" [value]="p.value">
+              <mat-icon [style.color]="p.color">{{ p.icon }}</mat-icon>
+              {{ 'JOBS.PRIORITY_' + p.value.toUpperCase() | translate }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="nf-field">
+          <mat-label>{{ 'JOBS.STATUS' | translate }}</mat-label>
+          <mat-select [(ngModel)]="newStatus">
+            <mat-option *ngFor="let s of statusOptions" [value]="s.value">
+              {{ 'JOBS.STATUS_' + s.value.toUpperCase() | translate }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <!-- row 2: Date, Time, Custom Time -->
+      <div class="new-job-row">
+        <mat-form-field appearance="outline" class="nf-date">
+          <mat-label>{{ 'JOBS.SCHEDULED_DATE' | translate }}</mat-label>
+          <input matInput [matDatepicker]="newPicker" [(ngModel)]="newDate" title="{{ 'JOBS.SCHEDULED_DATE' | translate }}">
+          <mat-datepicker-toggle matIconSuffix [for]="newPicker"></mat-datepicker-toggle>
+          <mat-datepicker #newPicker></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="nf-field">
+          <mat-label>{{ 'JOBS.SCHEDULED_TIME' | translate }}</mat-label>
+          <mat-select [(ngModel)]="newScheduledTime">
+            <mat-option *ngFor="let t of timeOptions" [value]="t.value">{{ t.label | translate }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="nf-field" *ngIf="newScheduledTime === 'custom'">
+          <mat-label>{{ 'JOBS.SCHEDULED_TIME_CUSTOM' | translate }} (HH:MM)</mat-label>
+          <input matInput type="time" [(ngModel)]="newScheduledTimeCustom" placeholder="10:30">
+        </mat-form-field>
+      </div>
+
+      <!-- row 3: Address, Description, button -->
+      <div class="new-job-row">
+        <mat-form-field appearance="outline" class="nf-address">
+          <mat-label>{{ 'JOBS.ADDRESS' | translate }}</mat-label>
+          <mat-icon matPrefix>location_on</mat-icon>
+          <input matInput [(ngModel)]="newAddress" title="{{ 'JOBS.ADDRESS' | translate }}">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="nf-desc">
+          <mat-label>{{ 'JOBS.DESCRIPTION' | translate }}</mat-label>
+          <textarea matInput [(ngModel)]="newDescription" rows="1" title="{{ 'JOBS.DESCRIPTION' | translate }}"></textarea>
+        </mat-form-field>
+
+        <button type="button" mat-raised-button color="primary" (click)="saveNew()" [disabled]="saving || !newTitle.trim()" class="save-btn">
+          <mat-icon>add</mat-icon>
+          {{ saving ? ('SCHEDULING.CREATING' | translate) : ('JOBS.CREATE' | translate) }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── EDIT PANEL ─────────────────────────────────────────────────────────── -->
+  <div class="edit-panel" *ngIf="selectedJob">
+    <div class="edit-panel-header">
+      <mat-icon [style.color]="priorityInfo(selectedJob.priority).color">
+        {{ priorityInfo(selectedJob.priority).icon }}
+      </mat-icon>
+      <span class="edit-panel-title">{{ selectedJob.title }}</span>
+      <a mat-icon-button [routerLink]="['/jobs', selectedJob.id]" [matTooltip]="'JOBS.OPEN_TOOLTIP' | translate">
+        <mat-icon>open_in_new</mat-icon>
+      </a>
+      <button type="button" mat-icon-button (click)="closePanel()" [matTooltip]="'COMMON.CLOSE' | translate">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <div class="edit-panel-body">
+      <mat-form-field appearance="outline" class="edit-field">
+        <mat-label>{{ 'JOBS.ASSIGNED_TO' | translate }}</mat-label>
+        <mat-select [(ngModel)]="editAssignedTo" [disabled]="!!selectedJob && isLocked(selectedJob)">
+          <mat-option [value]="null">{{ 'JOBS.NONE' | translate }}</mat-option>
+          <mat-option *ngFor="let u of users" [value]="u.id">{{ u.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="edit-field">
+        <mat-label>{{ 'JOBS.PRIORITY' | translate }}</mat-label>
+        <mat-select [(ngModel)]="editPriority" [disabled]="!!selectedJob && isLocked(selectedJob)">
+          <mat-option *ngFor="let p of priorityOptions" [value]="p.value">
+            <mat-icon [style.color]="p.color">{{ p.icon }}</mat-icon>
+            {{ 'JOBS.PRIORITY_' + p.value.toUpperCase() | translate }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="edit-field">
+        <mat-label>{{ 'JOBS.STATUS' | translate }}</mat-label>
+        <mat-select [(ngModel)]="editStatus">
+          <mat-option *ngFor="let s of statusOptions" [value]="s.value">
+            {{ 'JOBS.STATUS_' + s.value.toUpperCase() | translate }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="edit-field">
+        <mat-label>{{ 'JOBS.SCHEDULED_DATE' | translate }}</mat-label>
+        <input matInput [matDatepicker]="editPicker" [(ngModel)]="editDate"
+               title="{{ 'JOBS.SCHEDULED_DATE' | translate }}"
+               [disabled]="!!selectedJob && isLocked(selectedJob)">
+        <mat-datepicker-toggle matIconSuffix [for]="editPicker"></mat-datepicker-toggle>
+        <mat-datepicker #editPicker></mat-datepicker>
+      </mat-form-field>
+
+      <button type="button" mat-raised-button color="primary" (click)="saveEdit()" [disabled]="saving" class="save-btn">
+        <mat-icon>save</mat-icon>
+        {{ saving ? ('SCHEDULING.SAVING' | translate) : ('COMMON.SAVE' | translate) }}
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── JOB CARD TEMPLATE ──────────────────────────────────────────────────── -->
+<ng-template #jobCard let-job="job">
+  <div class="job-chip-inner"
+       [style.border-left-color]="priorityInfo(job.priority).color">
+    <div class="job-chip-top">
+      <span class="job-chip-title">{{ job.title }}</span>
+      <span class="drag-handle" cdkDragHandle>
+        <mat-icon>drag_indicator</mat-icon>
+      </span>
+    </div>
+    <div class="job-chip-meta">
+      <span *ngIf="job.assigned_to_name" class="assignee">
+        <mat-icon>person</mat-icon>{{ job.assigned_to_name }}
+      </span>
+      <span *ngIf="job.client_name" class="client">
+        <mat-icon>business</mat-icon>{{ job.client_name }}
+      </span>
+      <span class="status-dot"
+            [style.background]="statusInfo(job.status).color"
+            [matTooltip]="'JOBS.STATUS_' + job.status.toUpperCase() | translate">
+      </span>
+    </div>
+  </div>
+</ng-template>

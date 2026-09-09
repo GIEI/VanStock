@@ -1,0 +1,93 @@
+<div class="page-container">
+  <div class="page-header">
+    <h2>{{ 'USERS.TITLE' | translate }}</h2>
+    <div class="header-right">
+      <div *ngIf="seatUsage" class="seat-counter"
+           [class.seat-counter--full]="seatsFull"
+           [class.seat-counter--warning]="seatsWarning">
+        <mat-icon>{{ seatsFull ? 'lock' : 'event_seat' }}</mat-icon>
+        <span>{{ 'USERS.SEATS_USED' | translate }}: <strong>{{ seatUsage.used_seats }} / {{ seatUsage.max_seats }}</strong></span>
+        <span class="plan-chip">{{ seatUsage.plan_type }}</span>
+      </div>
+      <button mat-stroked-button (click)="openSmtpConfig()" [matTooltip]="'SMTP.CONFIGURE' | translate" *ngIf="!auth.isSuperAdmin">
+        <mat-icon>mail_outline</mat-icon> {{ 'SMTP.CONFIGURE' | translate }}
+      </button>
+      <button mat-raised-button color="primary" (click)="openCreate()"
+              [disabled]="seatsFull"
+              [matTooltip]="seatsFull ? ('USERS.SEATS_FULL_TOOLTIP' | translate) : ''">
+        <mat-icon>person_add</mat-icon> {{ 'USERS.ADD' | translate }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Company filter — superadmin only -->
+  <mat-card class="mb-16" *ngIf="auth.isSuperAdmin">
+    <mat-card-content>
+      <mat-form-field appearance="outline" class="filter-field">
+        <mat-label>{{ 'USERS.FILTER_COMPANY' | translate }}</mat-label>
+        <mat-select [(ngModel)]="filterCompanyId">
+          <mat-option [value]="null">{{ 'USERS.ALL_COMPANIES' | translate }}</mat-option>
+          <mat-option *ngFor="let c of companies" [value]="c.id">{{c.name}}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card>
+    <mat-card-content>
+      <table mat-table [dataSource]="filteredUsers" class="full-width">
+
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>{{ 'USERS.NAME' | translate }}</th>
+          <td mat-cell *matCellDef="let u">
+            <strong>{{u.name}}</strong>
+            <span *ngIf="u.company_name" class="company-tag"> — {{u.company_name}}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="email">
+          <th mat-header-cell *matHeaderCellDef>{{ 'USERS.EMAIL' | translate }}</th>
+          <td mat-cell *matCellDef="let u">{{u.email}}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="role">
+          <th mat-header-cell *matHeaderCellDef>{{ 'USERS.ROLE' | translate }}</th>
+          <td mat-cell *matCellDef="let u">
+            <mat-chip [color]="roleColor(u.role)" highlighted>{{roleLabel(u.role)}}</mat-chip>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="active">
+          <th mat-header-cell *matHeaderCellDef>{{ 'USERS.ACTIVE' | translate }}</th>
+          <td mat-cell *matCellDef="let u">
+            <mat-icon [style.color]="u.is_active ? '#388e3c' : '#bbb'">
+              {{u.is_active ? 'check_circle' : 'cancel'}}
+            </mat-icon>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let u" class="actions-cell">
+            <button mat-icon-button [matTooltip]="'COMMON.EDIT' | translate" (click)="openEdit(u)">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button [matTooltip]="'USERS.RESET_LINK' | translate" (click)="resetLink(u)">
+              <mat-icon>lock_reset</mat-icon>
+            </button>
+            <button mat-icon-button [matTooltip]="'COMMON.DELETE' | translate" color="warn"
+                    (click)="delete(u)"
+                    [disabled]="u.id === auth.currentUser?.id">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+
+      <p *ngIf="!loading && users.length === 0" class="empty-state">{{ 'USERS.EMPTY' | translate }}</p>
+    </mat-card-content>
+  </mat-card>
+</div>

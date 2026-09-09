@@ -1,0 +1,305 @@
+openapi: 3.1.0
+info:
+  title: StockSimple Integration API
+  version: 1.0.0-draft
+  description: |
+    Contratto iniziale per integrazioni ERP. Questa superficie è separata dalle API
+    usate dalla UI. Le risorse in lettura sono disponibili; i comandi inbound
+    sono accettati e conservati in inbox idempotente. Il worker elabora i
+    comandi di inventario dopo la risoluzione dei mapping ERP; gli upsert
+    anagrafici attendono una policy di mapping e ownership dedicata.
+servers:
+  - url: https://{host}/api/integrations/v1
+    variables:
+      host:
+        default: example.stocksimple.it
+security:
+  - integrationApiKey: []
+paths:
+  /commands:
+    post:
+      summary: Accoda un comando canonico idempotente
+      operationId: submitIntegrationCommand
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntegrationCommand'
+      responses:
+        '202':
+          description: Comando accettato
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandAccepted'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/IdempotencyConflict' }
+  /commands/{commandId}:
+    get:
+      summary: Legge lo stato di un comando precedentemente accettato
+      operationId: getIntegrationCommand
+      parameters:
+        - $ref: '#/components/parameters/CommandId'
+      responses:
+        '200':
+          description: Stato del comando
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandStatus'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /catalog/items:
+    get:
+      summary: Elenca gli articoli nel modello canonico
+      operationId: listCatalogItems
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Pagina di articoli
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogItemPage'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /inventory/locations:
+    get:
+      summary: Elenca le posizioni di inventario nel modello canonico
+      operationId: listInventoryLocations
+      responses:
+        '200':
+          description: Posizioni configurate per il tenant
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InventoryLocation'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /inventory/balances:
+    get:
+      summary: Elenca i saldi per articolo e posizione
+      operationId: listInventoryBalances
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Pagina di saldi
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryBalancePage'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /events:
+    get:
+      summary: Legge eventi immutabili con cursor persistibile dal consumer
+      description: |
+        Include eventi inventariali e gli eventi Presenze outbound
+        `attendance.event.created`, `attendance.event.superseded` e
+        `attendance.event.invalidated`. Il cursor deve essere salvato soltanto
+        dopo l'elaborazione idempotente della pagina da parte del consumer.
+      operationId: listIntegrationEvents
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          description: Pagina eventi; il cursor va salvato solo dopo l'elaborazione locale
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventPage'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+components:
+  securitySchemes:
+    integrationApiKey:
+      type: apiKey
+      in: header
+      name: X-Integration-Key
+      description: Credenziale service-to-service scoped e vincolata a un solo tenant.
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 1, maxLength: 255 }
+    CommandId:
+      name: commandId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      schema: { type: string }
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+  responses:
+    ValidationError:
+      description: Payload non valido
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Unauthorized:
+      description: Credenziale assente o non valida
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Forbidden:
+      description: Scope insufficiente
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NotFound:
+      description: Risorsa non trovata nel tenant della credenziale
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    IdempotencyConflict:
+      description: Stessa chiave con payload o operazione differenti
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  schemas:
+    IntegrationCommand:
+      type: object
+      required: [schemaVersion, commandId, type, occurredAt, data]
+      properties:
+        schemaVersion: { type: string, const: '1.0' }
+        commandId: { type: string, format: uuid }
+        type:
+          type: string
+          enum: [catalog.item.upsert, inventory.location.upsert, inventory.receipt, inventory.issue, inventory.transfer, inventory.adjustment]
+        occurredAt: { type: string, format: date-time }
+        correlationId:
+          type: string
+          format: uuid
+        data: { type: object, additionalProperties: true }
+    CommandAccepted:
+      type: object
+      required: [commandId, statusUrl]
+      properties:
+        commandId: { type: string, format: uuid }
+        statusUrl: { type: string, format: uri-reference }
+    CommandStatus:
+      type: object
+      required: [commandId, status]
+      properties:
+        commandId: { type: string, format: uuid }
+        status: { type: string, enum: [pending, processing, completed, failed, dead_letter, needs_mapping] }
+        result: { type: object, additionalProperties: true }
+        error: { $ref: '#/components/schemas/Error' }
+    CatalogItem:
+      type: object
+      required: [id, sku, name, uom, updatedAt]
+      properties:
+        id: { type: string }
+        sku: { type: string }
+        barcode: { type: [string, 'null'] }
+        name: { type: string }
+        description: { type: [string, 'null'] }
+        uom: { type: string, description: Codice UDM canonico, ad esempio C62 o KGM }
+        minStock: { type: string, pattern: '^-?\\d+(\\.\\d+)?$' }
+        price: { type: [string, 'null'], pattern: '^-?\\d+(\\.\\d+)?$' }
+        tracksBatches: { type: boolean }
+        updatedAt: { type: string, format: date-time }
+    InventoryLocation:
+      type: object
+      required: [id, code, name, type, status]
+      properties:
+        id: { type: string }
+        code: { type: string }
+        name: { type: string }
+        type: { type: string, enum: [warehouse, van, site, other] }
+        status: { type: string }
+    InventoryBalance:
+      type: object
+      required: [itemId, locationId, quantity, uom, asOf]
+      properties:
+        itemId: { type: string }
+        locationId: { type: string }
+        quantity: { type: string, pattern: '^-?\\d+(\\.\\d+)?$' }
+        uom: { type: string }
+        asOf: { type: string, format: date-time }
+    IntegrationEvent:
+      type: object
+      required: [eventId, schemaVersion, type, occurredAt, origin, data]
+      properties:
+        eventId: { type: string, format: uuid }
+        schemaVersion: { type: string, const: '1.0' }
+        type:
+          type: string
+          description: |
+            Tipo canonico estensibile. I tipi Presenze attualmente emessi sono
+            `attendance.event.created`, `attendance.event.superseded` e
+            `attendance.event.invalidated`.
+          example: inventory.movement.confirmed
+        occurredAt: { type: string, format: date-time }
+        origin: { type: string, enum: [vanstock, erp] }
+        correlationId:
+          type: string
+          description: UUID del comando oppure requestId della timbratura correlata.
+        data:
+          type: object
+          additionalProperties: true
+          description: Per gli eventi Presenze rispetta lo schema AttendanceEventData.
+    AttendanceEventData:
+      type: object
+      description: |
+        Payload canonico degli eventi Presenze. La proiezione verso Odoo associa
+        `userId` a `hr.employee.id`; CHECK_IN/BREAK_END aprono un intervallo
+        `hr.attendance`, BREAK_START/CHECK_OUT lo chiudono. Gli eventi superseded
+        e invalidated richiedono la riconciliazione cronologica della giornata.
+      required:
+        - attendanceEventId
+        - userId
+        - action
+        - occurredAt
+        - previousState
+        - resultingState
+        - requestId
+        - source
+        - status
+        - anomalyType
+        - supersededEventId
+        - overrideRequestId
+      properties:
+        attendanceEventId: { type: string }
+        userId: { type: string, description: Identificativo utente VanStock da mappare a hr.employee.id }
+        action: { type: string, enum: [CHECK_IN, CHECK_OUT, BREAK_START, BREAK_END] }
+        occurredAt: { type: string, format: date-time }
+        previousState: { type: [string, 'null'] }
+        resultingState: { type: [string, 'null'] }
+        requestId: { type: string }
+        source: { type: string, enum: [mobile, web, admin] }
+        status: { type: string, enum: [valid, invalid, reviewed, superseded] }
+        anomalyType: { type: [string, 'null'] }
+        supersededEventId: { type: [string, 'null'] }
+        overrideRequestId: { type: [string, 'null'] }
+    CatalogItemPage:
+      type: object
+      required: [data]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/CatalogItem' } }
+        nextCursor: { type: [string, 'null'] }
+    InventoryBalancePage:
+      type: object
+      required: [data]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/InventoryBalance' } }
+        nextCursor: { type: [string, 'null'] }
+    EventPage:
+      type: object
+      required: [data]
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/IntegrationEvent' } }
+        nextCursor: { type: [string, 'null'] }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+        code: { type: string }
+        correlationId: { type: string, format: uuid }

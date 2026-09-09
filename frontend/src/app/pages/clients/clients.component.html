@@ -1,0 +1,125 @@
+<div class="page-container">
+
+  <div class="page-header">
+    <h2>{{ 'CLIENTS.TITLE' | translate }}</h2>
+    <button *ngIf="auth.isAdmin" mat-fab color="primary" (click)="openCreate()" [attr.aria-label]="'CLIENTS.NEW' | translate">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+
+  <!-- Search -->
+  <mat-form-field appearance="outline" class="search-field">
+    <mat-label>{{ 'CLIENTS.SEARCH' | translate }}</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+    <input matInput [(ngModel)]="searchQ" (ngModelChange)="load()" [placeholder]="'CLIENTS.SEARCH_PLACEHOLDER' | translate">
+  </mat-form-field>
+
+  <!-- Form inline -->
+  <mat-card *ngIf="showForm" class="mb-16 form-card">
+    <mat-card-header>
+      <mat-card-title>{{ (editingId ? 'CLIENTS.EDIT' : 'CLIENTS.NEW') | translate }}</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="form-grid">
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'CLIENTS.NAME' | translate }} *</mat-label>
+            <input matInput formControlName="name" [placeholder]="'CLIENTS.NAME_PLACEHOLDER' | translate">
+            <mat-error>{{ 'CLIENTS.NAME_REQUIRED' | translate }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'CLIENTS.PHONE' | translate }}</mat-label>
+            <mat-icon matPrefix>phone</mat-icon>
+            <input matInput formControlName="phone" placeholder="+39 333 123 4567">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'CLIENTS.EMAIL' | translate }}</mat-label>
+            <mat-icon matPrefix>email</mat-icon>
+            <input matInput formControlName="email" type="email" placeholder="client@example.com">
+            <mat-error>{{ 'CLIENTS.EMAIL_INVALID' | translate }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'CLIENTS.ADDRESS' | translate }}</mat-label>
+            <mat-icon matPrefix>location_on</mat-icon>
+            <input matInput formControlName="address" [placeholder]="'CLIENTS.ADDRESS_PLACEHOLDER' | translate">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'CLIENTS.NOTES' | translate }}</mat-label>
+            <textarea matInput formControlName="notes" rows="2"></textarea>
+          </mat-form-field>
+
+        </div>
+
+        <div class="form-actions">
+          <button mat-button type="button" (click)="cancel()">{{ 'CLIENTS.CANCEL' | translate }}</button>
+          <button mat-raised-button color="primary" type="submit">
+            {{ (editingId ? 'CLIENTS.UPDATE' : 'CLIENTS.CREATE') | translate }}
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Spinner -->
+  <div *ngIf="loading" class="text-center"><mat-spinner diameter="40" style="margin:0 auto"></mat-spinner></div>
+
+  <!-- Lista -->
+  <div class="clients-grid" *ngIf="!loading">
+
+    <div *ngIf="clients.length === 0" class="empty-state">
+      <mat-icon>people</mat-icon>
+      <p>{{ 'CLIENTS.EMPTY' | translate }}</p>
+    </div>
+
+    <mat-card *ngFor="let c of clients" class="client-card">
+      <mat-card-content>
+
+        <div class="client-header">
+          <div class="client-avatar">{{ c.name.charAt(0).toUpperCase() }}</div>
+          <div class="client-info">
+            <div class="client-name">{{ c.name }}</div>
+            <div class="client-meta">
+              <span *ngIf="c.phone" class="meta-item">
+                <mat-icon>phone</mat-icon> {{ c.phone }}
+              </span>
+              <span *ngIf="c.email" class="meta-item">
+                <mat-icon>email</mat-icon> {{ c.email }}
+              </span>
+            </div>
+            <div *ngIf="c.address" class="client-address">
+              <mat-icon>location_on</mat-icon> {{ c.address }}
+            </div>
+            <div *ngIf="c.notes" class="client-notes">{{ c.notes }}</div>
+          </div>
+        </div>
+
+        <div class="client-stats">
+          <div class="stat">
+            <span class="stat-val">{{ c.job_count ?? 0 }}</span>
+            <span class="stat-lbl">{{ 'CLIENTS.JOBS' | translate }}</span>
+          </div>
+        </div>
+
+        <div class="client-actions">
+          <a mat-stroked-button [routerLink]="['/jobs']" [queryParams]="{client_id: c.id}" matTooltip="{{ 'CLIENTS.OPEN_JOBS' | translate }}">
+            <mat-icon>work</mat-icon> {{ 'CLIENTS.OPEN_JOBS' | translate }}
+          </a>
+          <button *ngIf="auth.isAdmin" mat-icon-button (click)="openEdit(c)" matTooltip="{{ 'CLIENTS.EDIT_TOOLTIP' | translate }}">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button *ngIf="auth.isAdmin" mat-icon-button color="warn" (click)="delete(c)" matTooltip="{{ 'CLIENTS.DELETE_TOOLTIP' | translate }}">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+
+</div>

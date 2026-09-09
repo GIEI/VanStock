@@ -1,0 +1,110 @@
+<div class="page-container">
+  <div class="page-header">
+    <h2>{{ 'FIX_MAGAZZINO.TITLE' | translate }}</h2>
+    <p>{{ 'FIX_MAGAZZINO.SUBTITLE' | translate }}</p>
+  </div>
+
+  <mat-card class="description-card mb-20">
+    <mat-card-content>
+      <div class="description-content">
+        <mat-icon color="primary">info_outline</mat-icon>
+        <p>{{ 'FIX_MAGAZZINO.DESCRIPTION' | translate }}</p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card>
+    <mat-card-content>
+      <!-- Loading state -->
+      <div *ngIf="loading && !fixing" class="loader-container">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+
+      <!-- Empty state -->
+      <div *ngIf="!loading && products.length === 0" class="empty-state">
+        <mat-icon>check_circle</mat-icon>
+        <p>{{ 'FIX_MAGAZZINO.EMPTY' | translate }}</p>
+      </div>
+
+      <!-- Table of unassigned products -->
+      <div *ngIf="!loading && products.length > 0">
+        <table mat-table [dataSource]="products" class="fix-table">
+
+          <!-- Selection Column -->
+          <ng-container matColumnDef="select">
+            <th mat-header-cell *matHeaderCellDef>
+              <mat-checkbox (change)="$event ? toggleAllRows() : null"
+                            [checked]="selection.hasValue() && isAllSelected()"
+                            [indeterminate]="selection.hasValue() && !isAllSelected()">
+              </mat-checkbox>
+            </th>
+            <td mat-cell *matCellDef="let row">
+              <mat-checkbox (click)="$event.stopPropagation()"
+                            (change)="$event ? selection.toggle(row) : null"
+                            [checked]="selection.isSelected(row)">
+              </mat-checkbox>
+            </td>
+          </ng-container>
+
+          <!-- SKU Column -->
+          <ng-container matColumnDef="sku">
+            <th mat-header-cell *matHeaderCellDef>{{ 'PRODUCTS.SKU' | translate }}</th>
+            <td mat-cell *matCellDef="let row"><strong>{{row.sku}}</strong></td>
+          </ng-container>
+
+          <!-- Name Column -->
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>{{ 'FIX_MAGAZZINO.PRODUCT' | translate }}</th>
+            <td mat-cell *matCellDef="let row">{{row.name}}</td>
+          </ng-container>
+
+          <!-- Total Quantity Column -->
+          <ng-container matColumnDef="total_quantity">
+            <th mat-header-cell *matHeaderCellDef>{{ 'FIX_MAGAZZINO.TOTAL_QTY' | translate }}</th>
+            <td mat-cell *matCellDef="let row">{{row.total_quantity}} {{row.unit}}</td>
+          </ng-container>
+
+          <!-- Unassigned Quantity Column -->
+          <ng-container matColumnDef="unassigned_quantity">
+            <th mat-header-cell *matHeaderCellDef>{{ 'FIX_MAGAZZINO.UNASSIGNED_QTY' | translate }}</th>
+            <td mat-cell *matCellDef="let row" class="unassigned-cell">
+              {{row.unassigned_quantity}} {{row.unit}}
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+              (click)="selection.toggle(row)">
+          </tr>
+        </table>
+
+        <!-- Actions Bar -->
+        <div class="actions-bar">
+          <div class="selection-info">
+            {{ selection.selected.length }} {{ 'VAN_LOAD.SELECTED_COUNT' | translate }}
+          </div>
+
+          <div class="fix-controls">
+            <mat-form-field appearance="outline" class="location-select">
+              <mat-label>{{ 'FIX_MAGAZZINO.SELECT_LOCATION' | translate }}</mat-label>
+              <mat-select [(ngModel)]="targetLocationId">
+                <mat-option *ngFor="let loc of locations" [value]="loc.id">
+                  {{loc.name}} <small>({{ loc.type === 'warehouse' ? 'Magazzino' : 'Furgone' }})</small>
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <button mat-raised-button color="primary"
+                    [disabled]="selection.isEmpty() || !targetLocationId || fixing"
+                    (click)="fixSelected()">
+              <mat-spinner *ngIf="fixing" diameter="20" style="display:inline-block;margin-right:8px"></mat-spinner>
+              <mat-icon *ngIf="!fixing">auto_fix_high</mat-icon>
+              {{ 'FIX_MAGAZZINO.FIX_SELECTED' | translate }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </mat-card-content>
+  </mat-card>
+</div>

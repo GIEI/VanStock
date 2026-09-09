@@ -1,0 +1,105 @@
+<div class="page-container">
+  <div class="page-header">
+    <h2>{{ 'NAV.MY_ABSENCES' | translate }}</h2>
+    <button *ngIf="!isAdmin" mat-fab color="primary" (click)="openAddDialog()" [attr.aria-label]="'ABSENCES.ADD_ABSENCE' | translate">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+
+  <mat-card class="absences-card">
+    <mat-card-header>
+      <mat-card-title>
+        <div class="month-navigation">
+          <button mat-icon-button (click)="prevMonth()">
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+          <span class="month-label">{{ getMonthLabel() }}</span>
+          <button mat-icon-button (click)="nextMonth()">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+      </mat-card-title>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div *ngIf="loading" class="spinner-center">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+
+      <div *ngIf="!loading" class="calendar-container">
+        <!-- Calendar grid -->
+        <div class="calendar-grid">
+          <!-- Day headers (Mon-Sun) -->
+          <div class="calendar-header">
+            <div class="day-header">{{ 'ABSENCES.MON' | translate }}</div>
+            <div class="day-header">{{ 'ABSENCES.TUE' | translate }}</div>
+            <div class="day-header">{{ 'ABSENCES.WED' | translate }}</div>
+            <div class="day-header">{{ 'ABSENCES.THU' | translate }}</div>
+            <div class="day-header">{{ 'ABSENCES.FRI' | translate }}</div>
+            <div class="day-header">{{ 'ABSENCES.SAT' | translate }}</div>
+            <div class="day-header">{{ 'ABSENCES.SUN' | translate }}</div>
+          </div>
+
+          <!-- Calendar days -->
+          <div class="calendar-body">
+            <!-- Empty cells for days before month starts -->
+            <div *ngFor="let i of [].constructor(getFirstDayOfMonth(currentYear, currentMonth))" class="empty-day"></div>
+
+            <!-- Days of month -->
+            <div
+              *ngFor="let day of [].constructor(getDaysInMonth(currentYear, currentMonth)); let dayNum = index"
+              class="calendar-day"
+              [class.has-absence]="isAbsentOn(getDateForDay(dayNum + 1))">
+              <div class="day-number">{{ dayNum + 1 }}</div>
+              <ng-container *ngIf="isAbsentOn(getDateForDay(dayNum + 1))">
+                <div class="absences-container">
+                  <div *ngFor="let absence of getAbsencesOn(getDateForDay(dayNum + 1))" class="absence-entry">
+                    <span class="user-name">{{ absence.user_name }}</span>
+                    <button
+                      mat-icon-button
+                      (click)="deleteAbsence(absence)"
+                      class="delete-btn"
+                      [attr.aria-label]="'COMMON.DELETE' | translate"
+                      *ngIf="isAdmin || absence.user_id === auth.currentUser?.id">
+                      <mat-icon>close</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-box has-absence"></div>
+            <span>{{ 'ABSENCES.MARKED_ABSENT' | translate }}</span>
+          </div>
+        </div>
+
+        <!-- Absences list for this month -->
+        <div *ngIf="absences.length > 0" class="absences-list">
+          <h3>{{ 'ABSENCES.THIS_MONTH' | translate }} ({{ absences.length }})</h3>
+          <div class="absence-item" *ngFor="let absence of absences">
+            <div class="absence-date">{{ absence.absence_date | date: 'dd/MM/yyyy' }}</div>
+            <div class="absence-user" *ngIf="absence.user_name">{{ absence.user_name }}</div>
+            <div class="absence-details">
+              <span *ngIf="absence.reason" class="badge">{{ getReasonLabel(absence.reason) }}</span>
+              <span *ngIf="absence.notes" class="notes">{{ absence.notes }}</span>
+            </div>
+            <button mat-icon-button (click)="deleteAbsence(absence)" [attr.aria-label]="'COMMON.DELETE' | translate"
+              *ngIf="isAdmin || absence.user_id === auth.currentUser?.id">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="absences.length === 0" class="empty-state">
+          <mat-icon>calendar_today</mat-icon>
+          <p>{{ 'ABSENCES.NO_ABSENCES' | translate }}</p>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

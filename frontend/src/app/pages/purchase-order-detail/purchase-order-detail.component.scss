@@ -1,0 +1,322 @@
+.po-detail {
+  padding: 16px;
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  padding: 60px;
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .header-title {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    h2 { margin: 0; font-size: 1.4rem; }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+}
+
+.info-card .info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  .info-label { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+  .info-value { font-weight: 500; }
+  .info-sub   { font-size: 0.8rem; color: #666; }
+  .received   { color: #16a34a; }
+}
+
+.info-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  mat-form-field { width: 100%; }
+
+  .form-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+}
+
+.info-view {
+  position: relative;
+
+  .info-edit-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    opacity: 0.6;
+    &:hover { opacity: 1; }
+  }
+}
+
+.items-card {
+  mat-card-header {
+    display: flex;
+    align-items: center;
+
+    .card-header-actions { margin-left: auto; }
+  }
+}
+
+.add-item-form {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+
+  mat-form-field { width: 100%; }
+
+  .form-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+}
+
+.empty-items {
+  text-align: center;
+  padding: 32px;
+  color: #888;
+
+  mat-icon { font-size: 48px; height: 48px; width: 48px; opacity: 0.3; }
+  p { margin-top: 8px; }
+}
+
+.items-table {
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.item-row {
+  display: grid;
+  grid-template-columns: 2.5fr repeat(4, 1fr) 80px;
+  column-gap: 8px;
+  align-items: center;
+  padding: 8px 4px;
+  border-bottom: 1px solid #f0f0f0;
+
+  &:last-child { border-bottom: none; }
+
+  &--editing {
+    padding: 4px;
+    background: var(--c-surface2, #f8f9fa);
+    border-radius: 6px;
+
+    mat-form-field { font-size: 13px; }
+    ::ng-deep .mat-mdc-form-field-subscript-wrapper { display: none; }
+    ::ng-deep .mat-mdc-text-field-wrapper { padding: 0 8px; }
+  }
+}
+
+.header-row {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  border-bottom: 2px solid #e0e0e0 !important;
+}
+
+.align-right { text-align: right; }
+
+.item-name {
+  display: flex;
+  flex-direction: column;
+
+  .item-sku { font-size: 0.75rem; color: #888; }
+}
+
+.received-qty { color: #16a34a; font-weight: 500; }
+.subtotal     { font-weight: 500; }
+
+.total-row {
+  font-weight: 700;
+  border-top: 2px solid #e0e0e0 !important;
+  .total-value { color: #1976d2; font-size: 1.05rem; }
+}
+
+.item-actions { display: flex; justify-content: flex-end; gap: 0; }
+
+.received-notice {
+  background: #f0fdf4;
+  border-left: 4px solid #16a34a;
+
+  mat-card-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    mat-icon { color: #16a34a; }
+    span { font-weight: 500; color: #15803d; }
+  }
+}
+
+.sku-opt { color: #888; font-size: 0.85em; }
+
+// ── Two-column layout ──────────────────────────────────────────────────────
+.po-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &--split {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
+
+// ── Suggestions panel (left column) ───────────────────────────────────────
+.sugg-panel {
+  width: 260px;
+  min-width: 240px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 16px;
+}
+
+.sugg-panel-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 16px 10px;
+  border-bottom: 1px solid #f0f0f0;
+
+  .sugg-panel-icon { color: #f97316; font-size: 22px; width: 22px; height: 22px; margin-top: 2px; flex-shrink: 0; }
+  .sugg-panel-title { font-weight: 600; font-size: 0.9rem; }
+  .sugg-panel-sub   { font-size: 0.75rem; color: #888; margin-top: 1px; }
+}
+
+.sugg-list {
+  padding: 8px 0;
+}
+
+.sugg-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 120ms;
+
+  &:hover:not(.sugg-item--added) {
+    background: #f0f9ff;
+
+    .sugg-add-icon { opacity: 1; color: #2563eb; }
+  }
+
+  &--added {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+.sugg-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+
+  .sugg-name { font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sugg-sku  { font-size: 0.72rem; color: #888; }
+}
+
+.sugg-item-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.sugg-deficit {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #dc2626;
+  background: #fee2e2;
+  padding: 1px 5px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.sugg-add-icon  { font-size: 18px; width: 18px; height: 18px; color: #93c5fd; opacity: 0.7; transition: opacity 120ms, color 120ms; }
+.sugg-done-icon { font-size: 18px; width: 18px; height: 18px; color: #22c55e; }
+
+.sugg-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: #aaa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+
+  mat-icon { font-size: 32px; width: 32px; height: 32px; color: #22c55e; opacity: 0.6; }
+  span { font-size: 0.82rem; line-height: 1.4; }
+}
+
+// ── Items card (right column / full width) ─────────────────────────────────
+.items-card { flex: 1; min-width: 0; }
+
+.lot-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #7c3aed;
+  background: #ede9fe;
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-top: 3px;
+
+  mat-icon { font-size: 12px; width: 12px; height: 12px; }
+}
+
+.track-lots-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0 8px;
+}
+
+.track-lots-hint {
+  font-size: 0.75rem;
+  color: #888;
+}

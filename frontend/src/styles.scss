@@ -1,0 +1,376 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// VanStock — Design System
+// Neo-Minimal · Monochromatic · White cards · Black CTAs
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Tokens ───────────────────────────────────────────────────────────────────
+:root {
+  // Brand — blue
+  --c-primary:      #2563EB;
+  --c-primary-dark: #1D4ED8;
+  --c-primary-soft: #EFF6FF;
+
+  // Surfaces
+  --c-bg:       #F1F5F9;
+  --c-surface:  #ffffff;
+  --c-surface2: #f8fafc;
+
+  // Borders
+  --c-border:     rgba(0, 0, 0, 0.08);
+  --c-border-mid: rgba(0, 0, 0, 0.14);
+
+  // Text
+  --c-text:   #111111;
+  --c-text2:  #555555;
+  --c-text3:  #999999;
+
+  // Semantic
+  --c-success:      #16a34a;
+  --c-success-soft: #f0fdf4;
+  --c-warn:         #d97706;
+  --c-warn-soft:    #fffbeb;
+  --c-error:        #dc2626;
+  --c-error-soft:   #fef2f2;
+
+  // Radius
+  --r-xs:   4px;
+  --r-sm:   8px;
+  --r-md:   12px;
+  --r-lg:   16px;
+  --r-xl:   20px;
+  --r-2xl:  24px;
+  --r-full: 9999px;
+
+  // Shadows — ultra-subtle
+  --s-xs: 0 1px 3px rgba(0,0,0,0.05);
+  --s-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --s-md: 0 4px 16px rgba(0,0,0,0.08);
+  --s-lg: 0 8px 32px rgba(0,0,0,0.10);
+
+  // Glass
+  --glass-bg:  rgba(255, 255, 255, 0.88);
+  --glass-bd:  rgba(255, 255, 255, 0.65);
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: 'Inter', 'Helvetica Neue', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--c-text);
+  background: var(--c-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// ── Material overrides ────────────────────────────────────────────────────────
+
+// — Typography
+.mat-mdc-card-title   { font-family: 'Inter', sans-serif !important; font-weight: 600 !important; }
+.mat-mdc-button-base  { font-family: 'Inter', sans-serif !important; }
+.mat-mdc-form-field   { font-family: 'Inter', sans-serif !important; }
+.mat-typography       { font-family: 'Inter', sans-serif !important; }
+
+// — Cards
+.mat-mdc-card {
+  border-radius: var(--r-xl) !important;
+  box-shadow: var(--s-sm) !important;
+  border: 1px solid var(--c-border) !important;
+  background: var(--c-surface) !important;
+}
+.mat-mdc-card-content { padding: 16px !important; }
+.mat-mdc-card-header  { padding: 16px 16px 0 !important; }
+
+// — Form fields outline
+.mdc-notched-outline__leading  { border-radius: var(--r-sm) 0 0 var(--r-sm) !important; }
+.mdc-notched-outline__trailing { border-radius: 0 var(--r-sm) var(--r-sm) 0 !important; }
+
+// — Buttons — pill shape, solid black
+.mat-mdc-raised-button {
+  border-radius: var(--r-full) !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  box-shadow: none !important;
+  &.mat-primary {
+    background: var(--c-primary) !important;
+    color: #ffffff !important;
+  }
+}
+.mat-mdc-outlined-button,
+.mat-mdc-stroked-button {
+  border-radius: var(--r-full) !important;
+  font-weight: 500 !important;
+}
+.mat-mdc-button        { border-radius: var(--r-sm) !important; font-weight: 500 !important; }
+.mat-mdc-icon-button   { border-radius: var(--r-sm) !important; }
+.mat-mdc-fab,
+.mat-mdc-mini-fab      { border-radius: var(--r-lg) !important; background: var(--c-primary) !important; color: #fff !important; }
+
+// — Dialog
+.mat-mdc-dialog-container .mdc-dialog__surface {
+  border-radius: var(--r-2xl) !important;
+  box-shadow: var(--s-lg) !important;
+}
+
+// — Menu
+.mat-mdc-menu-panel {
+  border-radius: var(--r-md) !important;
+  box-shadow: var(--s-lg) !important;
+  border: 1px solid var(--c-border) !important;
+  min-width: 180px !important;
+  overflow-x: hidden !important;
+}
+.mat-mdc-menu-item { border-radius: var(--r-xs) !important; margin: 2px 4px !important; }
+
+// — Snack bar
+.mat-mdc-snack-bar-container {
+  --mdc-snackbar-container-shape: var(--r-md) !important;
+}
+
+// — Table rows
+.mat-mdc-row:hover .mat-mdc-cell { background: var(--c-surface2); }
+
+// — Chips
+.mat-mdc-chip { border-radius: var(--r-full) !important; font-size: 11px !important; font-weight: 600 !important; }
+
+// — Select panel
+.mat-mdc-select-panel { border-radius: var(--r-md) !important; box-shadow: var(--s-lg) !important; }
+
+// — Progress spinner color
+.mat-mdc-progress-spinner circle { stroke: var(--c-primary) !important; }
+
+// ── Layout ────────────────────────────────────────────────────────────────────
+.page-container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  @media (max-width: 599px) { padding: 14px; }
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  h1, h2 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: -0.4px;
+    color: var(--c-text);
+  }
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+// ── Stock & movement tokens ───────────────────────────────────────────────────
+.badge-ok       { background: var(--c-success-soft); color: var(--c-success); }
+.badge-warning  { background: var(--c-warn-soft);    color: var(--c-warn);    }
+.badge-critical { background: var(--c-error-soft);   color: var(--c-error);   }
+
+.stock-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--r-full);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.type-carico        { color: var(--c-success); background: var(--c-success-soft); }
+.type-scarico       { color: var(--c-error);   background: var(--c-error-soft);   }
+.type-trasferimento { color: #555;  background: #f0f0f0; }
+
+.movement-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: var(--r-full);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+.spacer        { flex: 1 1 auto; }
+.mt-8          { margin-top: 8px; }
+.mt-16         { margin-top: 16px; }
+.mt-24         { margin-top: 24px; }
+.mb-8          { margin-bottom: 8px; }
+.mb-16         { margin-bottom: 16px; }
+.text-center   { text-align: center; }
+.text-muted    { color: var(--c-text2); }
+.content-with-bottom-nav { padding-bottom: 80px; }
+
+.fab-bottom-right {
+  position: fixed;
+  bottom: 80px;
+  right: 16px;
+  z-index: 100;
+  @media (min-width: 960px) { bottom: 24px; }
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--c-text3);
+  padding: 48px 16px;
+  font-size: 14px;
+
+  mat-icon {
+    font-size: 48px;
+    width: 48px;
+    height: 48px;
+    display: block;
+    margin: 0 auto 12px;
+    opacity: 0.2;
+  }
+}
+
+// ── Icon box ──────────────────────────────────────────────────────────────────
+// Reusable 44×44 icon container with colored background — mirrors Android design
+.icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  mat-icon { font-size: 22px; width: 22px; height: 22px; }
+
+  &.blue   { background: var(--c-primary-soft); mat-icon { color: var(--c-primary); } }
+  &.green  { background: var(--c-success-soft); mat-icon { color: var(--c-success); } }
+  &.orange { background: var(--c-warn-soft);    mat-icon { color: var(--c-warn); } }
+  &.red    { background: var(--c-error-soft);   mat-icon { color: var(--c-error); } }
+  &.purple { background: #f3e8ff;               mat-icon { color: #7c3aed; } }
+}
+
+// ── Photo preview ─────────────────────────────────────────────────────────────
+.photo-preview {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: var(--r-md);
+  border: 1px solid var(--c-border);
+}
+
+// ── Scanner ───────────────────────────────────────────────────────────────────
+.scanner-container {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  background: #000;
+  video { width: 100%; display: block; }
+}
+
+.scanner-crosshair {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+
+  &::before {
+    content: '';
+    width: 70%;
+    height: 40%;
+    border: 2px solid rgba(255,255,255,0.85);
+    border-radius: var(--r-md);
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
+  }
+}
+
+
+// ── Van-report: datepicker date highlights ────────────────────────────────────
+// The datepicker popup is rendered in a CDK overlay (appended to <body>),
+// outside the component host — global styles are required here.
+.has-movements .mat-calendar-body-cell-content {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #dc2626 !important;
+  font-weight: 700 !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+}
+
+// ── Nav drag-and-drop preview ──────────────────────────────────────────────────
+// Rendered at <body> level by Angular CDK — component styles can't reach here.
+.nav-drag-preview {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 12px;
+  border-radius: 6px;
+  background: #1E3A8A;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+  min-width: 160px;
+
+  mat-icon {
+    font-size: 17px;
+    width: 17px;
+    height: 17px;
+    color: rgba(255,255,255,0.8);
+    font-family: 'Material Icons';
+  }
+
+  &--child {
+    padding-left: 32px;
+    background: #1a3480;
+  }
+}
+
+// ── Print ─────────────────────────────────────────────────────────────────────
+@media print {
+  mat-sidenav,
+  .mat-drawer,
+  .main-toolbar {
+    display: none !important;
+  }
+
+  mat-sidenav-container,
+  .mat-drawer-container {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  mat-sidenav-content,
+  .mat-drawer-content {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    overflow: visible !important;
+  }
+
+  .page-container {
+    max-width: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  .cdk-overlay-container {
+    display: none !important;
+  }
+}

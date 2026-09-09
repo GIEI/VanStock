@@ -1,0 +1,166 @@
+<div class="page-container">
+
+  <div class="page-header">
+    <button mat-icon-button routerLink="/products"><mat-icon>arrow_back</mat-icon></button>
+    <h2>{{ (isEdit ? 'PRODUCT_FORM.EDIT' : 'PRODUCT_FORM.NEW') | translate }}</h2>
+  </div>
+
+  <div *ngIf="loading" class="text-center mt-16">
+    <mat-spinner diameter="40" style="margin:0 auto"></mat-spinner>
+  </div>
+
+  <mat-card *ngIf="!loading">
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="save()">
+
+        <!-- Photo -->
+        <div class="photo-section mb-16">
+          <img *ngIf="photoPreview" [src]="photoPreview" alt="Foto prodotto" class="photo-preview">
+          <mat-icon *ngIf="!photoPreview" class="photo-placeholder" style="font-size:80px;width:80px;height:80px;color:#bdbdbd">add_photo_alternate</mat-icon>
+
+          <div class="photo-buttons">
+            <!-- Pick from gallery -->
+            <label class="photo-upload-label">
+              <input type="file" accept="image/*" hidden (change)="onPhotoSelected($event)" #galleryInput>
+              <button type="button" mat-stroked-button matTooltip="{{ 'PRODUCT_FORM.GALLERY' | translate }}"
+                      (click)="galleryInput.click()">
+                <mat-icon>photo_library</mat-icon> Galleria
+              </button>
+            </label>
+
+            <!-- Capture with camera (dialog with getUserMedia) -->
+            <button type="button" mat-stroked-button matTooltip="{{ 'PRODUCT_FORM.CAMERA' | translate }}"
+                    (click)="openCameraCapture()">
+              <mat-icon>photo_camera</mat-icon> Fotocamera
+            </button>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <!-- Name -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'PRODUCT_FORM.NAME' | translate }} *</mat-label>
+            <input matInput formControlName="name" placeholder="{{ 'PRODUCT_FORM.NAME_PLACEHOLDER' | translate }}">
+            <mat-error *ngIf="form.get('name')?.hasError('required')">{{ 'PRODUCT_FORM.REQUIRED' | translate }}</mat-error>
+          </mat-form-field>
+
+          <!-- SKU -->
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'PRODUCT_FORM.SKU' | translate }} *</mat-label>
+            <input matInput formControlName="sku" placeholder="{{ 'PRODUCT_FORM.SKU_PLACEHOLDER' | translate }}">
+            <mat-error *ngIf="form.get('sku')?.hasError('required')">{{ 'PRODUCT_FORM.REQUIRED' | translate }}</mat-error>
+          </mat-form-field>
+
+          <!-- Barcode -->
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'PRODUCT_FORM.BARCODE' | translate }}</mat-label>
+            <input matInput formControlName="barcode" placeholder="{{ 'PRODUCT_FORM.BARCODE_PLACEHOLDER' | translate }}">
+            <button type="button" mat-icon-button matSuffix
+                    matTooltip="{{ 'PRODUCT_FORM.SCAN_BARCODE' | translate }}"
+                    (click)="openBarcodeScanner()">
+              <mat-icon>photo_camera</mat-icon>
+            </button>
+          </mat-form-field>
+
+          <!-- Category -->
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'PRODUCT_FORM.CATEGORY' | translate }}</mat-label>
+            <input matInput [formControl]="categoryInput"
+                   [matAutocomplete]="categoryAuto"
+                   placeholder="{{ 'PRODUCT_FORM.CATEGORY_PLACEHOLDER' | translate }}">
+            <mat-autocomplete #categoryAuto="matAutocomplete">
+              <mat-option *ngFor="let cat of filteredCategories" [value]="cat.name"
+                          (onSelectionChange)="onCategorySelected(cat)">
+                {{cat.name}}
+              </mat-option>
+              <mat-option *ngIf="showCreateOption" [value]="newCategoryName"
+                          (onSelectionChange)="createAndSelectCategory()">
+                <mat-icon style="font-size:16px;vertical-align:middle;margin-right:4px">add</mat-icon>
+                Crea "{{newCategoryName}}"
+              </mat-option>
+            </mat-autocomplete>
+          </mat-form-field>
+
+          <!-- Quantity -->
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'PRODUCT_FORM.QUANTITY' | translate }}</mat-label>
+            <input matInput type="number" formControlName="quantity" min="0">
+          </mat-form-field>
+
+          <!-- Unit -->
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'PRODUCT_FORM.UNIT' | translate }}</mat-label>
+            <mat-select formControlName="unit">
+              <mat-option *ngFor="let u of units" [value]="u">{{u}}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Min stock -->
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'PRODUCT_FORM.MIN_STOCK' | translate }}</mat-label>
+            <input matInput type="number" formControlName="min_stock" min="0">
+          </mat-form-field>
+
+          <!-- Location -->
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'PRODUCT_FORM.LOCATION' | translate }}</mat-label>
+            <mat-select formControlName="location_id">
+              <mat-option [value]="null">{{ 'PRODUCT_FORM.NO_LOCATION' | translate }}</mat-option>
+              <mat-option *ngFor="let loc of locations" [value]="loc.id">{{loc.name}}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <!-- Price -->
+          <mat-form-field appearance="outline">
+            <mat-label>Prezzo unitario</mat-label>
+            <input matInput type="number" formControlName="price" min="0" step="0.01">
+            <span matSuffix>€</span>
+          </mat-form-field>
+
+          <!-- Tracks Batches -->
+          <div class="full-width mb-16">
+            <mat-checkbox formControlName="tracks_batches" color="primary">
+              <span class="font-bold">Abilita tracciamento lotti e scadenze</span>
+            </mat-checkbox>
+            <p class="text-xs text-secondary mt-1 ml-7">
+              Se abilitato, ti verrà richiesto di inserire il numero di lotto e la data di scadenza per ogni carico, e potrai monitorare le scadenze dalla dashboard.
+            </p>
+          </div>
+
+          <ng-container *ngIf="requiresBatchDetails">
+            <mat-form-field appearance="outline">
+              <mat-label>Numero lotto *</mat-label>
+              <input matInput formControlName="batch_number" placeholder="Es. LOT-2026-001">
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Data di scadenza *</mat-label>
+              <input matInput type="date" formControlName="expiry_date">
+            </mat-form-field>
+          </ng-container>
+
+          <!-- Description -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'PRODUCT_FORM.DESCRIPTION' | translate }}</mat-label>
+            <textarea matInput formControlName="description" rows="2"></textarea>
+          </mat-form-field>
+
+          <!-- Notes -->
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'PRODUCT_FORM.NOTES' | translate }}</mat-label>
+            <textarea matInput formControlName="notes" rows="2"></textarea>
+          </mat-form-field>
+        </div>
+
+        <div class="form-actions">
+          <button mat-button type="button" routerLink="/products">Annulla</button>
+          <button mat-raised-button color="primary" type="submit" [disabled]="saving">
+            <mat-spinner *ngIf="saving" diameter="20" style="display:inline-block;margin-right:8px"></mat-spinner>
+            {{isEdit ? 'Aggiorna' : 'Crea Prodotto'}}
+          </button>
+        </div>
+
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

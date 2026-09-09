@@ -1,0 +1,20 @@
+services:
+  backend:
+    environment:
+      NODE_ENV: production
+
+  gateway:
+    image: nginx:alpine
+    container_name: stocksimple-gateway
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/certs:ro
+      - ./nginx/certbot:/var/www/certbot:ro
+    depends_on:
+      - frontend
+      - backend
+      - sito_php

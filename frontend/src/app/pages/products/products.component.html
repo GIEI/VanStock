@@ -1,0 +1,120 @@
+<div class="page-container">
+
+  <div class="page-header">
+    <h1>{{ 'PRODUCTS.TITLE' | translate }} <span class="total-badge">{{total}}</span></h1>
+    <div class="header-actions">
+      <button *ngIf="auth.isAdmin" type="button" mat-stroked-button (click)="exportExcel()" matTooltip="Esporta tutti i prodotti in Excel">
+        <mat-icon>download</mat-icon> {{ 'PRODUCTS.EXPORT_CSV' | translate }}
+      </button>
+      <button *ngIf="auth.isAdmin" type="button" mat-stroked-button (click)="openImport()" matTooltip="Importa prodotti da file Excel">
+        <mat-icon>upload</mat-icon> {{ 'PRODUCTS.IMPORT' | translate }}
+      </button>
+      <a *ngIf="auth.isAdmin" mat-fab color="primary" routerLink="/products/new" aria-label="Aggiungi prodotto">
+        <mat-icon>add</mat-icon>
+      </a>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-row">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>{{ 'PRODUCTS.SEARCH_PLACEHOLDER' | translate }}</mat-label>
+      <input matInput [ngModel]="searchQuery" (ngModelChange)="onSearch($event)">
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>{{ 'PRODUCTS.CATEGORY' | translate }}</mat-label>
+      <mat-select [(ngModel)]="filterCategory" (ngModelChange)="load()">
+        <mat-option value="">{{ 'PRODUCTS.ALL_CATEGORIES' | translate }}</mat-option>
+        <mat-option *ngFor="let cat of categories" [value]="cat.id">{{cat.name}}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>{{ 'PRODUCTS.LOCATION' | translate }}</mat-label>
+      <mat-select [(ngModel)]="filterLocation" (ngModelChange)="load()">
+        <mat-option value="">{{ 'PRODUCTS.ALL_CATEGORIES' | translate }}</mat-option>
+        <mat-option *ngFor="let loc of locations" [value]="loc.id">{{loc.name}}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-stroked-button
+            [class.active-filter]="filterLowStock"
+            (click)="filterLowStock = !filterLowStock; load()">
+      <mat-icon>warning_amber</mat-icon> {{ 'PRODUCTS.LOW_STOCK_FILTER' | translate }}
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center mt-16">
+    <mat-spinner diameter="40" style="margin:0 auto"></mat-spinner>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!loading && products.length === 0" class="empty-state">
+    <mat-icon>inventory_2</mat-icon>
+    <p>{{ 'PRODUCTS.EMPTY' | translate }}</p>
+    <button mat-raised-button color="primary" routerLink="/products/new">
+      {{ 'PRODUCTS.ADD_FIRST' | translate }}
+    </button>
+  </div>
+
+  <!-- Product grid -->
+  <div class="card-grid" *ngIf="!loading && products.length > 0">
+    <mat-card *ngFor="let p of products" class="product-card">
+      <mat-card-content>
+
+        <!-- Top: photo + info -->
+        <div class="product-top">
+          <div class="product-photo" [routerLink]="['/products', p.id]" style="cursor:pointer">
+            <img *ngIf="p.photo_url" [src]="p.photo_url | photoUrl" [alt]="p.name" class="photo-thumb">
+            <mat-icon *ngIf="!p.photo_url" class="photo-placeholder">inventory_2</mat-icon>
+          </div>
+
+          <div class="product-info" [routerLink]="['/products', p.id]" style="cursor:pointer;flex:1">
+            <div class="product-name">{{p.name}}</div>
+            <div class="product-sku">SKU: {{p.sku}}</div>
+            <div class="product-category" *ngIf="p.category_name || p.category">{{p.category_name || p.category}}</div>
+            <div class="product-location" *ngIf="filterLocation && p.location_name">
+              <mat-icon class="small-icon">{{locationIcon(p.location_type || '')}}</mat-icon>
+              {{p.location_name}}
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom: qty row + badge row -->
+        <div class="product-bottom">
+          <!-- Row 1: quantity + actions -->
+          <div class="qty-actions-row">
+            <div class="product-quantity">
+              <span class="qty-value">{{p.quantity}}</span>
+              <span class="qty-unit">{{p.unit}}</span>
+              <span class="qty-label">{{ quantityLabel || ('PRODUCTS.QTY_TOTAL' | translate) }}</span>
+            </div>
+            <div class="product-actions">
+<a mat-icon-button [routerLink]="['/movements/new']" [queryParams]="{product_id: p.id}"
+                 [matTooltip]="'PRODUCTS.ADD_MOVEMENT_TOOLTIP' | translate">
+                <mat-icon>swap_horiz</mat-icon>
+              </a>
+              <a *ngIf="auth.isAdmin" mat-icon-button [routerLink]="['/products', p.id, 'edit']" [matTooltip]="'PRODUCTS.EDIT_TOOLTIP' | translate">
+                <mat-icon>edit</mat-icon>
+              </a>
+              <button *ngIf="auth.isAdmin" mat-icon-button (click)="delete(p)" [matTooltip]="'PRODUCTS.DELETE_TOOLTIP' | translate" color="warn">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- Row 2: stock badge -->
+          <span class="stock-badge" [ngClass]="stockClass(p)">
+            <mat-icon class="badge-icon">{{stockIcon(p)}}</mat-icon>
+            min {{p.min_stock}} {{p.unit}}
+          </span>
+        </div>
+
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+</div>

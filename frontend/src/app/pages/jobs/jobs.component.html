@@ -1,0 +1,225 @@
+<div class="page-container">
+
+  <div class="page-header">
+    <h2>{{ 'JOBS.TITLE' | translate }}</h2>
+    <button *ngIf="auth.isAdmin" mat-fab color="primary" (click)="openCreate()"
+      [attr.aria-label]="'JOBS.NEW' | translate">
+      <mat-icon>add</mat-icon>
+    </button>
+  </div>
+
+  <!-- Filtri -->
+  <div class="filters-bar">
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>{{ 'JOBS.STATUS' | translate }}</mat-label>
+      <mat-select [(ngModel)]="filterStatus" (ngModelChange)="load()">
+        <mat-option value="">{{ 'JOBS.ALL_STATUS' | translate }}</mat-option>
+        <mat-option *ngFor="let s of statusOptions" [value]="s.value">{{ s.label | translate }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="filter-field">
+      <mat-label>{{ 'JOBS.CLIENT' | translate }}</mat-label>
+      <mat-select [(ngModel)]="filterClientId" (ngModelChange)="load()">
+        <mat-option [value]="null">{{ 'JOBS.ALL_CLIENTS' | translate }}</mat-option>
+        <mat-option *ngFor="let c of clients" [value]="c.id">{{ c.name }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button *ngIf="filterClientId" mat-stroked-button (click)="clearClientFilter()">
+      <mat-icon>clear</mat-icon> {{ 'JOBS.REMOVE_CLIENT_FILTER' | translate }}
+    </button>
+    <button mat-stroked-button [class.filter-active]="filterProductMissing"
+            (click)="filterProductMissing = !filterProductMissing; load()">
+      <mat-icon>inventory_2</mat-icon> {{ 'JOBS.FILTER_PRODUCT_MISSING' | translate }}
+    </button>
+  </div>
+
+  <!-- Form inline -->
+  <mat-card #formCard *ngIf="showForm" class="mb-16 form-card">
+    <mat-card-header>
+      <mat-card-title>{{ (editingId ? 'JOBS.EDIT' : 'JOBS.NEW') | translate }}</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="form-grid">
+
+          <div class="title-field-wrapper">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'JOBS.TITLE_FIELD' | translate }} *</mat-label>
+              <input matInput formControlName="title" placeholder="{{ 'JOBS.TITLE_PLACEHOLDER' | translate }}">
+              <mat-error>{{ 'COMMON.REQUIRED' | translate }}</mat-error>
+            </mat-form-field>
+            <button mat-icon-button type="button" (click)="openAvailabilityCalendar()"
+              matTooltip="{{ 'JOBS.AVAILABILITY_CALENDAR' | translate }}" class="calendar-btn">
+              <mat-icon>event_available</mat-icon>
+            </button>
+          </div>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'JOBS.CLIENT' | translate }}</mat-label>
+            <mat-select formControlName="client_id">
+              <mat-option [value]="null">{{ 'JOBS.NONE' | translate }}</mat-option>
+              <mat-option *ngFor="let c of clients" [value]="c.id">{{ c.name }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'JOBS.ASSIGNED_TO' | translate }}</mat-label>
+            <mat-select formControlName="assigned_to">
+              <mat-option [value]="null">{{ 'JOBS.NONE' | translate }}</mat-option>
+              <mat-option *ngFor="let u of users" [value]="u.id">{{ u.name }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'JOBS.SCHEDULED_DATE' | translate }}</mat-label>
+            <input matInput [matDatepicker]="picker" formControlName="scheduled_date">
+            <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'JOBS.SCHEDULED_TIME' | translate }}</mat-label>
+            <mat-select formControlName="scheduled_time">
+              <mat-option *ngFor="let t of timeOptions" [value]="t.value">{{ t.label | translate }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" *ngIf="form.get('scheduled_time')?.value === 'custom'">
+            <mat-label>{{ 'JOBS.SCHEDULED_TIME_CUSTOM' | translate }} (HH:MM)</mat-label>
+            <input matInput type="time" formControlName="scheduled_time_custom" placeholder="10:30">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'JOBS.PRIORITY' | translate }}</mat-label>
+            <mat-select formControlName="priority">
+              <mat-option *ngFor="let p of priorityOptions" [value]="p.value">
+                <mat-icon [style.color]="p.color">{{ p.icon }}</mat-icon>
+                {{ p.label | translate }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'JOBS.STATUS' | translate }}</mat-label>
+            <mat-select formControlName="status">
+              <mat-option *ngFor="let s of statusOptions" [value]="s.value">{{ s.label | translate }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'JOBS.ADDRESS' | translate }}</mat-label>
+            <mat-icon matPrefix>location_on</mat-icon>
+            <input matInput formControlName="address" placeholder="{{ 'JOBS.ADDRESS_PLACEHOLDER' | translate }}">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>{{ 'JOBS.DESCRIPTION' | translate }}</mat-label>
+            <textarea matInput formControlName="description" rows="2"></textarea>
+          </mat-form-field>
+
+        </div>
+
+        <button type="button" mat-stroked-button color="primary" (click)="openRequiredMaterials()" [disabled]="editingId && form.get('status')?.value !== 'aperto'">
+          <mat-icon>inventory_2</mat-icon> + Aggiungi materiali richiesti<span *ngIf="requiredMaterials.length"> ({{ requiredMaterials.length }})</span>
+        </button>
+        <p *ngIf="editingId && form.get('status')?.value !== 'aperto'" class="materials-note">I materiali non sono più modificabili dopo l’accettazione.</p>
+
+        <div class="form-actions">
+          <button mat-button type="button" (click)="cancel()">{{ 'JOBS.CANCEL' | translate }}</button>
+          <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid">
+            {{ (editingId ? 'JOBS.UPDATE' : 'JOBS.CREATE') | translate }}
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Spinner -->
+  <div *ngIf="loading" class="text-center"><mat-spinner diameter="40" style="margin:0 auto"></mat-spinner></div>
+
+  <!-- Lista lavori -->
+  <div class="jobs-grid" *ngIf="!loading">
+
+    <div *ngIf="jobs.length === 0" class="empty-state">
+      <mat-icon>work_outline</mat-icon>
+      <p>{{ 'JOBS.EMPTY' | translate }}</p>
+    </div>
+
+    <mat-card *ngFor="let job of jobs" class="job-card">
+      <mat-card-content>
+
+        <div class="job-header">
+          <div class="job-title-wrap">
+            <div class="job-title">{{ job.title }}</div>
+            <span class="status-badge" [style.background]="statusInfo(job.status).color + '22'"
+              [style.color]="statusInfo(job.status).color">
+              {{ statusInfo(job.status).label | translate }}
+            </span>
+            <span *ngIf="job.product_missing" class="product-missing-badge">
+              <mat-icon class="priority-icon">inventory_2</mat-icon>
+              {{ 'JOBS.PRODUCT_MISSING_BADGE' | translate }}
+              <span *ngIf="job.product_missing_note" class="product-missing-note">{{ job.product_missing_note }}</span>
+              <button *ngIf="auth.isAdmin" mat-icon-button class="product-missing-clear-btn"
+                      [matTooltip]="'JOBS.PRODUCT_MISSING_CLEAR' | translate"
+                      (click)="clearProductMissing(job); $event.stopPropagation()">
+                <mat-icon>close</mat-icon>
+              </button>
+            </span>
+            <span *ngIf="job.priority && job.priority !== 'normale'" class="priority-badge"
+              [style.background]="priorityInfo(job.priority).color + '22'"
+              [style.color]="priorityInfo(job.priority).color">
+              <mat-icon class="priority-icon">{{ priorityInfo(job.priority).icon }}</mat-icon>
+              {{ priorityInfo(job.priority).label | translate }}
+            </span>
+          </div>
+          <div class="job-meta">
+            <span *ngIf="job.client_name" class="meta-item">
+              <mat-icon>person</mat-icon> {{ job.client_name }}
+            </span>
+            <span *ngIf="job.assigned_to_name" class="meta-item">
+              <mat-icon>engineering</mat-icon> {{ job.assigned_to_name }}
+            </span>
+            <span *ngIf="job.scheduled_date" class="meta-item date-item">
+              <mat-icon>calendar_today</mat-icon>
+              {{ job.scheduled_date | date:'dd/MM/yyyy' }}
+            </span>
+            <span *ngIf="job.address" class="meta-item">
+              <mat-icon>location_on</mat-icon> {{ job.address }}
+            </span>
+          </div>
+          <div *ngIf="job.description" class="job-desc">{{ job.description }}</div>
+        </div>
+
+        <div class="job-stats">
+          <div class="stat">
+            <span class="stat-val">{{ job.movement_count ?? 0 }}</span>
+            <span class="stat-lbl">{{ 'JOBS.MOVEMENTS' | translate }}</span>
+          </div>
+        </div>
+
+        <div class="job-actions">
+          <a mat-stroked-button [routerLink]="['/jobs', job.id]" matTooltip="{{ 'JOBS.OPEN_TOOLTIP' | translate }}">
+            <mat-icon>open_in_new</mat-icon> {{ 'JOBS.OPEN' | translate }}
+          </a>
+          <button *ngIf="auth.isAdmin" mat-icon-button (click)="openGeolocationMap(job)"
+            matTooltip="{{ 'JOBS.GEOLOCATION_MAP_TOOLTIP' | translate }}">
+            <mat-icon>map</mat-icon>
+          </button>
+          <button *ngIf="auth.isAdmin" mat-icon-button (click)="openEdit(job)"
+            matTooltip="{{ 'JOBS.EDIT_TOOLTIP' | translate }}">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button *ngIf="auth.isAdmin && job.status !== 'completato'" mat-icon-button color="warn" (click)="delete(job)"
+            matTooltip="{{ 'JOBS.DELETE_TOOLTIP' | translate }}">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+
+</div>

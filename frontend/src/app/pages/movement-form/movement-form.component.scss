@@ -1,0 +1,112 @@
+.type-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+
+  button { flex: 1; min-width: 100px; border-radius: var(--r-sm) !important; }
+}
+
+.type-active-carico        { background: var(--c-success-soft) !important; color: var(--c-success) !important; border-color: var(--c-success) !important; }
+.type-active-scarico       { background: var(--c-error-soft)   !important; color: var(--c-error)   !important; border-color: var(--c-error)   !important; }
+.type-active-trasferimento { background: var(--c-primary-soft) !important; color: var(--c-primary)  !important; border-color: var(--c-primary)  !important; }
+
+.full-width { width: 100%; }
+
+.product-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--c-surface2);
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--c-border);
+  font-size: 14px;
+}
+
+.location-tag {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--c-text2);
+  font-size: 13px;
+}
+
+.qty-field { width: 180px; }
+
+.purchase-price-field mat-icon[matPrefix] {
+  margin-right: 8px;
+  color: var(--c-text3);
+}
+
+.batch-fields-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+
+  mat-form-field { flex: 1; min-width: 180px; }
+}
+
+.locations-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+
+  mat-form-field { flex: 1 1 160px; }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--c-border);
+}
+
+// ── Notes toggle button ────────────────────────────────────────────────────────
+.notes-toggle-btn {
+  color: var(--c-text3);
+  transition: color 0.15s, background 0.15s;
+
+  &.notes-toggle-btn--active {
+    color: var(--c-primary);
+    background: var(--c-primary-soft);
+    border-radius: var(--r-sm);
+  }
+}
+
+// ── Collapsible notes panel ────────────────────────────────────────────────────
+.notes-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+  overflow: hidden;
+
+  &.notes-panel--open { grid-template-rows: 1fr; }
+}
+
+.notes-panel-inner {
+  min-height: 0;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.notes-panel-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-text3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+
+  mat-icon { font-size: 15px; width: 15px; height: 15px; }
+}
+
+.job-client-label {
+  color: var(--c-text3);
+  font-size: 12px;
+}

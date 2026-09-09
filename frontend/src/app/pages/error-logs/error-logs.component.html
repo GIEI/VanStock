@@ -1,0 +1,44 @@
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-titles">
+      <h2>{{ 'ADMIN.ERROR_LOGS' | translate }}</h2>
+      <p>{{ 'ADMIN.LOGS_SUBTITLE' | translate }}</p>
+    </div>
+    
+    <div class="header-actions">
+      <button mat-button color="primary" (click)="refresh()" [disabled]="loading">
+        <mat-icon>refresh</mat-icon>
+        {{ 'ADMIN.REFRESH' | translate }}
+      </button>
+      
+      <button mat-raised-button color="warn" (click)="clearLogs()" [disabled]="loading || !logs">
+        <mat-icon>delete_sweep</mat-icon>
+        {{ 'ADMIN.CLEAR_LOGS' | translate }}
+      </button>
+    </div>
+  </div>
+
+  <mat-card class="logs-card">
+    <mat-card-content>
+      <!-- Loading state -->
+      <div *ngIf="loading" class="spinner-container">
+        <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
+      </div>
+
+      <!-- Empty state -->
+      <div *ngIf="!loading && !logs" class="empty-state">
+        <mat-icon>check_circle_outline</mat-icon>
+        <p>{{ 'ADMIN.NO_LOGS' | translate }}</p>
+      </div>
+
+      <!-- Logs content -->
+      <div *ngIf="!loading && logs" class="logs-container">
+        <pre>{{ logs }}</pre>
+      </div>
+    </mat-card-content>
+  </mat-card>
+  
+  <div *ngIf="lastUpdate" class="last-update">
+    {{ 'COMMON.SAVED' | translate }}: {{ lastUpdate | date:'medium' }}
+  </div>
+</div>

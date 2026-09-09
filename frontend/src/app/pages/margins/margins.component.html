@@ -1,0 +1,225 @@
+<div class="page-container">
+
+  <div class="page-header">
+    <h2>{{ 'MARGINS.TITLE' | translate }}</h2>
+  </div>
+
+  <!-- ── KPI summary ────────────────────────────────────────────────────── -->
+  <div *ngIf="loadingSummary" class="text-center"><mat-spinner diameter="32" style="margin:0 auto"></mat-spinner></div>
+
+  <div class="kpi-grid" *ngIf="!loadingSummary && summary">
+    <div class="kpi-card">
+      <mat-icon>inventory_2</mat-icon>
+      <div class="kpi-body">
+        <span class="kpi-value">{{summary.stock_value_cost | number:'1.2-2'}} €</span>
+        <span class="kpi-label">{{ 'MARGINS.KPI_STOCK_COST' | translate }}</span>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <mat-icon>sell</mat-icon>
+      <div class="kpi-body">
+        <span class="kpi-value">{{summary.stock_value_sale | number:'1.2-2'}} €</span>
+        <span class="kpi-label">{{ 'MARGINS.KPI_STOCK_SALE' | translate }}</span>
+      </div>
+    </div>
+    <div class="kpi-card" [class.kpi-card--good]="(summary.stock_margin_pct ?? 0) >= 30"
+                          [class.kpi-card--ok]="(summary.stock_margin_pct ?? 0) >= 10 && (summary.stock_margin_pct ?? 0) < 30"
+                          [class.kpi-card--low]="(summary.stock_margin_pct ?? 0) < 10">
+      <mat-icon>trending_up</mat-icon>
+      <div class="kpi-body">
+        <span class="kpi-value">
+          {{summary.stock_margin_abs | number:'1.2-2'}} €
+          <small *ngIf="summary.stock_margin_pct != null">({{summary.stock_margin_pct | number:'1.1-1'}}%)</small>
+        </span>
+        <span class="kpi-label">{{ 'MARGINS.KPI_STOCK_MARGIN' | translate }}</span>
+      </div>
+    </div>
+    <div class="kpi-card" [class.kpi-card--good]="(summary.job_margin_pct ?? 0) >= 30"
+                          [class.kpi-card--ok]="(summary.job_margin_pct ?? 0) >= 10 && (summary.job_margin_pct ?? 0) < 30"
+                          [class.kpi-card--low]="(summary.job_margin_pct ?? 0) < 10">
+      <mat-icon>work</mat-icon>
+      <div class="kpi-body">
+        <span class="kpi-value">
+          {{summary.job_margin_abs | number:'1.2-2'}} €
+          <small *ngIf="summary.job_margin_pct != null">({{summary.job_margin_pct | number:'1.1-1'}}%)</small>
+        </span>
+        <span class="kpi-label">{{ 'MARGINS.KPI_JOB_MARGIN' | translate }}</span>
+      </div>
+    </div>
+    <div class="kpi-card kpi-card--muted" *ngIf="summary.products_with_cost < summary.product_count">
+      <mat-icon>info</mat-icon>
+      <div class="kpi-body">
+        <span class="kpi-value">{{summary.products_with_cost}} / {{summary.product_count}}</span>
+        <span class="kpi-label">{{ 'MARGINS.KPI_PRODUCTS_WITH_COST' | translate }}</span>
+      </div>
+    </div>
+  </div>
+
+  <mat-tab-group>
+
+    <!-- ── Pricelist tab ──────────────────────────────────────────────── -->
+    <mat-tab label="{{ 'MARGINS.TAB_PRICELIST' | translate }}">
+      <div class="tab-content">
+
+        <div class="toolbar">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-icon matPrefix>search</mat-icon>
+            <input matInput [(ngModel)]="productSearch" placeholder="{{ 'MARGINS.SEARCH_PRODUCTS' | translate }}">
+          </mat-form-field>
+        </div>
+
+        <div *ngIf="loading" class="text-center"><mat-spinner diameter="40" style="margin:0 auto"></mat-spinner></div>
+
+        <div *ngIf="!loading && products.length === 0" class="empty-state">
+          <mat-icon>trending_up</mat-icon>
+          <p>{{ 'MARGINS.EMPTY_PRODUCTS' | translate }}</p>
+        </div>
+
+        <div class="empty-state" *ngIf="!loading && products.length > 0 && filteredProducts.length === 0">
+          <mat-icon>search_off</mat-icon>
+          <p>{{ 'MARGINS.NO_RESULTS' | translate }}</p>
+        </div>
+
+        <div class="margin-table pricelist-cols" *ngIf="!loading && filteredProducts.length > 0">
+          <div class="margin-row header-row">
+            <span class="col-name sortable" (click)="sortProducts('name')">
+              {{ 'MARGINS.PRODUCT' | translate }}
+              <mat-icon *ngIf="productSort==='name'">{{productSortDir===1?'arrow_upward':'arrow_downward'}}</mat-icon>
+            </span>
+            <span class="col-num sortable" (click)="sortProducts('current_stock')">
+              {{ 'MARGINS.STOCK' | translate }}
+              <mat-icon *ngIf="productSort==='current_stock'">{{productSortDir===1?'arrow_upward':'arrow_downward'}}</mat-icon>
+            </span>
+            <span class="col-num sortable" (click)="sortProducts('avg_purchase_price')">
+              {{ 'MARGINS.AVG_COST' | translate }}
+              <mat-icon *ngIf="productSort==='avg_purchase_price'">{{productSortDir===1?'arrow_upward':'arrow_downward'}}</mat-icon>
+            </span>
+            <span class="col-num sortable" (click)="sortProducts('sale_price')">
+              {{ 'MARGINS.SALE_PRICE' | translate }}
+              <mat-icon *ngIf="productSort==='sale_price'">{{productSortDir===1?'arrow_upward':'arrow_downward'}}</mat-icon>
+            </span>
+            <span class="col-num sortable" (click)="sortProducts('margin_pct')">
+              {{ 'MARGINS.MARGIN' | translate }}
+              <mat-icon *ngIf="productSort==='margin_pct'">{{productSortDir===1?'arrow_upward':'arrow_downward'}}</mat-icon>
+            </span>
+            <span class="col-num sortable" (click)="sortProducts('stock_value_sale')">
+              {{ 'MARGINS.STOCK_VALUE' | translate }}
+              <mat-icon *ngIf="productSort==='stock_value_sale'">{{productSortDir===1?'arrow_upward':'arrow_downward'}}</mat-icon>
+            </span>
+          </div>
+
+          <a class="margin-row data-row" *ngFor="let p of filteredProducts"
+             [routerLink]="['/products', p.id]">
+            <span class="col-name">
+              <strong>{{p.name}}</strong>
+              <small>{{p.sku}}<ng-container *ngIf="p.category"> · {{p.category}}</ng-container></small>
+            </span>
+            <span class="col-num">{{p.current_stock}} {{p.unit || ''}}</span>
+            <span class="col-num">
+              <ng-container *ngIf="p.avg_purchase_price != null">{{p.avg_purchase_price | number:'1.2-2'}} €</ng-container>
+              <span *ngIf="p.avg_purchase_price == null" class="no-data" matTooltip="{{ 'MARGINS.NO_COST_DATA' | translate }}">—</span>
+            </span>
+            <span class="col-num">
+              <ng-container *ngIf="p.sale_price != null">{{p.sale_price | number:'1.2-2'}} €</ng-container>
+              <span *ngIf="p.sale_price == null" class="no-data">—</span>
+            </span>
+            <span class="col-num">
+              <span class="margin-badge" *ngIf="p.margin_pct != null" [ngClass]="marginClass(p.margin_pct)">
+                {{p.margin_pct | number:'1.1-1'}}%
+              </span>
+              <span *ngIf="p.margin_pct == null" class="no-data">—</span>
+            </span>
+            <span class="col-num">
+              <ng-container *ngIf="p.stock_value_sale != null">{{p.stock_value_sale | number:'1.2-2'}} €</ng-container>
+              <span *ngIf="p.stock_value_sale == null" class="no-data">—</span>
+            </span>
+          </a>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- ── Jobs tab ───────────────────────────────────────────────────── -->
+    <mat-tab label="{{ 'MARGINS.TAB_JOBS' | translate }}">
+      <div class="tab-content">
+
+        <div class="toolbar">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-icon matPrefix>search</mat-icon>
+            <input matInput [(ngModel)]="jobSearch" placeholder="{{ 'MARGINS.SEARCH_JOBS' | translate }}">
+          </mat-form-field>
+
+          <div class="date-filter">
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'MARGINS.DATE_FROM' | translate }}</mat-label>
+              <input matInput type="date" [(ngModel)]="dateFrom" (change)="applyDateFilter()">
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>{{ 'MARGINS.DATE_TO' | translate }}</mat-label>
+              <input matInput type="date" [(ngModel)]="dateTo" (change)="applyDateFilter()">
+            </mat-form-field>
+            <button mat-stroked-button (click)="resetDateFilter()" [disabled]="!dateFrom && !dateTo">
+              <mat-icon>clear</mat-icon> {{ 'MARGINS.RESET_FILTER' | translate }}
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="loadingJobs" class="text-center"><mat-spinner diameter="40" style="margin:0 auto"></mat-spinner></div>
+
+        <div *ngIf="!loadingJobs && jobs.length === 0" class="empty-state">
+          <mat-icon>work_outline</mat-icon>
+          <p>{{ 'MARGINS.EMPTY_JOBS' | translate }}</p>
+        </div>
+
+        <div class="empty-state" *ngIf="!loadingJobs && jobs.length > 0 && filteredJobs.length === 0">
+          <mat-icon>search_off</mat-icon>
+          <p>{{ 'MARGINS.NO_RESULTS' | translate }}</p>
+        </div>
+
+        <div class="margin-table jobs-cols" *ngIf="!loadingJobs && filteredJobs.length > 0">
+          <div class="margin-row header-row">
+            <span class="col-name sortable" (click)="sortJobs('title')">
+              {{ 'MARGINS.JOB' | translate }}
+              <mat-icon *ngIf="jobSort==='title'">{{jobSortDir===1?'arrow_upward':'arrow_downward'}}</mat-icon>
+            </span>
+            <span class="col-num">{{ 'MARGINS.STATUS' | translate }}</span>
+            <span class="col-num sortable" (click)="sortJobs('material_cost')">
+              {{ 'MARGINS.MATERIAL_COST' | translate }}
+              <mat-icon *ngIf="jobSort==='material_cost'">{{jobSortDir===1?'arrow_upward':'arrow_downward'}}</mat-icon>
+            </span>
+            <span class="col-num sortable" (click)="sortJobs('material_value')">
+              {{ 'MARGINS.MATERIAL_VALUE' | translate }}
+              <mat-icon *ngIf="jobSort==='material_value'">{{jobSortDir===1?'arrow_upward':'arrow_downward'}}</mat-icon>
+            </span>
+            <span class="col-num sortable" (click)="sortJobs('margin_pct')">
+              {{ 'MARGINS.MARGIN' | translate }}
+              <mat-icon *ngIf="jobSort==='margin_pct'">{{jobSortDir===1?'arrow_upward':'arrow_downward'}}</mat-icon>
+            </span>
+            <span class="col-num sortable" (click)="sortJobs('movement_count')">
+              {{ 'MARGINS.MOVEMENTS' | translate }}
+              <mat-icon *ngIf="jobSort==='movement_count'">{{jobSortDir===1?'arrow_upward':'arrow_downward'}}</mat-icon>
+            </span>
+          </div>
+
+          <a class="margin-row data-row" *ngFor="let j of filteredJobs"
+             [routerLink]="['/jobs', j.id]">
+            <span class="col-name">
+              <strong>{{j.title}}</strong>
+              <small>{{j.client_name ?? '—'}}</small>
+            </span>
+            <span class="col-num"><span class="status-badge" [ngClass]="'status-' + j.status">{{j.status}}</span></span>
+            <span class="col-num">{{j.material_cost | number:'1.2-2'}} €</span>
+            <span class="col-num">{{j.material_value | number:'1.2-2'}} €</span>
+            <span class="col-num">
+              <span class="margin-badge" *ngIf="j.margin_pct != null" [ngClass]="marginClass(j.margin_pct)">
+                {{j.margin_abs | number:'1.2-2'}} € ({{j.margin_pct | number:'1.1-1'}}%)
+              </span>
+              <span *ngIf="j.margin_pct == null" class="no-data">—</span>
+            </span>
+            <span class="col-num">{{j.movement_count}}</span>
+          </a>
+        </div>
+      </div>
+    </mat-tab>
+
+  </mat-tab-group>
+</div>

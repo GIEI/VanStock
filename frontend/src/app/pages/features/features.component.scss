@@ -1,0 +1,12 @@
+.page-container { max-width: 1100px; margin: 0 auto; padding: 16px; }
+.page-header { margin-bottom: 16px; h2 { margin: 0; } p { margin: 4px 0 0; color: var(--c-text2); } }
+.mb-16 { margin-bottom: 16px; }
+.form-row { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 12px; padding-top: 16px; mat-form-field { min-width: 180px; } .description { flex: 1; min-width: 240px; } button { margin-top: 8px; } }
+.menu-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding-top: 0; .menu-picker-title, small { flex-basis: 100%; } .menu-picker-title { margin: 0; } small { color: var(--c-text2); margin-top: 4px; } }
+.company-select { width: min(420px, 100%); margin-top: 16px; }
+.resource-list { display: grid; gap: 10px; margin: 0 0 16px; }
+.feature-row { display: flex; justify-content: space-between; gap: 20px; align-items: center; border-top: 1px solid var(--c-border); padding: 14px 0; &:first-of-type { margin-top: 8px; } p { margin: 4px 0 0; color: var(--c-text2); } }
+.code { display: inline-block; margin-left: 8px; color: var(--c-text3); font: 12px monospace; }
+.feature-status { display: flex; align-items: center; gap: 16px; white-space: nowrap; color: var(--c-text2); font-size: 13px; }
+.empty { color: var(--c-text2); padding: 16px 0; }
+@media (max-width: 640px) { .feature-row, .feature-status { align-items: flex-start; flex-direction: column; gap: 8px; } }

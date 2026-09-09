@@ -1,0 +1,94 @@
+<div class="page-container">
+
+  <div class="page-header">
+    <h2>
+      <mat-icon>calendar_month</mat-icon>
+      {{ 'VEHICLE_CALENDAR.TITLE' | translate }}
+    </h2>
+    <a mat-stroked-button routerLink="/locations" *ngIf="auth.isAdmin">
+      <mat-icon>local_shipping</mat-icon> {{ 'VEHICLE_CALENDAR.MANAGE_VANS' | translate }}
+    </a>
+  </div>
+
+  <!-- Week navigation -->
+  <div class="week-nav">
+    <button mat-icon-button type="button" (click)="prevWeek()" [title]="'VEHICLE_CALENDAR.PREV_WEEK' | translate">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <span class="week-label">{{ weekLabel }}</span>
+    <button mat-icon-button type="button" (click)="nextWeek()" [title]="'VEHICLE_CALENDAR.NEXT_WEEK' | translate">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+    <button mat-stroked-button type="button" (click)="goToday()" class="today-btn">{{ 'VEHICLE_CALENDAR.TODAY' | translate }}</button>
+  </div>
+
+  <div *ngIf="loading" class="spinner-center">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+
+  <div *ngIf="!loading">
+
+    <!-- Legend -->
+    <div class="legend">
+      <span class="legend-item"><span class="dot dot--free"></span> {{ 'VEHICLE_CALENDAR.FREE' | translate }}</span>
+      <span class="legend-item"><span class="dot dot--occupied"></span> {{ 'VEHICLE_CALENDAR.OCCUPIED' | translate }}</span>
+    </div>
+
+    <!-- Calendar table -->
+    <div class="cal-wrapper" *ngIf="vanRows.length > 0">
+      <table class="cal-table">
+        <thead>
+          <tr>
+            <th class="th-van">{{ 'VEHICLE_CALENDAR.VAN_COL' | translate }}</th>
+            <th class="th-hour">Ora</th>
+            <th *ngFor="let day of days"
+                class="th-day"
+                [class.today]="day.isToday"
+                [class.weekend]="day.isWeekend">
+              <span class="day-name">{{ day.date | date:'EEE' }}</span>
+              <span class="day-num">{{ day.date | date:'d' }}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let row of vanRows; let vanIdx = index">
+            <ng-container *ngFor="let hourBooking of row.hours; let hourIdx = index; let first = first">
+              <tr class="tr-hour">
+                <td class="td-van" *ngIf="first" [attr.rowspan]="row.hours.length">
+                  <div class="van-cell">
+                    <mat-icon>local_shipping</mat-icon>
+                    <div>
+                      <span class="van-name">{{ row.van.name }}</span>
+                      <span *ngIf="row.van.plate" class="van-plate">{{ row.van.plate }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="td-hour">{{ formatHour(hourBooking.hour) }}</td>
+                <td *ngFor="let day of days; let i = index"
+                    class="td-period"
+                    [class.today-col]="day.isToday"
+                    [class.weekend-col]="day.isWeekend"
+                    [class]="cellClass(getBookingsForHourAndDay(row.van.id, hourBooking.hour, day.dateStr))"
+                    [matTooltip]="cellTooltip(getBookingsForHourAndDay(row.van.id, hourBooking.hour, day.dateStr))"
+                    matTooltipPosition="above"
+                    (click)="openJobsDialog(getBookingsForHourAndDay(row.van.id, hourBooking.hour, day.dateStr), row.van.name, day.dateStr)"
+                    [style.cursor]="getBookingsForHourAndDay(row.van.id, hourBooking.hour, day.dateStr).length > 0 ? 'pointer' : 'default'">
+                  <div class="cell-content">
+                    <span *ngIf="getBookingsForHourAndDay(row.van.id, hourBooking.hour, day.dateStr).length > 0" class="cell-badge">{{ getBookingsForHourAndDay(row.van.id, hourBooking.hour, day.dateStr).length }}</span>
+                    <span *ngIf="getBookingsForHourAndDay(row.van.id, hourBooking.hour, day.dateStr).length > 0" class="cell-user-name">{{ getBookingsForHourAndDay(row.van.id, hourBooking.hour, day.dateStr)[0].booked_by_name }}</span>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <div *ngIf="vanRows.length === 0" class="empty-state">
+      <mat-icon>no_transfer</mat-icon>
+      <p>{{ 'VEHICLE_CALENDAR.NO_VANS' | translate }} <a routerLink="/locations" *ngIf="auth.isAdmin">{{ 'VEHICLE_CALENDAR.ADD_VAN' | translate }}</a></p>
+    </div>
+
+  </div>
+</div>

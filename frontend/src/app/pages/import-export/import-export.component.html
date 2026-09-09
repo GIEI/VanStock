@@ -1,0 +1,217 @@
+<div class="page-wrapper">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="page-title">
+      <mat-icon class="title-icon">import_export</mat-icon>
+      <h1>Import / Export</h1>
+    </div>
+    <p class="page-subtitle">Esporta o importa tutti i dati della tua azienda</p>
+  </div>
+
+  <!-- ── EXPORT ─────────────────────────────────────────────────────────── -->
+  <mat-card class="section-card">
+    <div class="card-header">
+      <div class="card-icon export-icon">
+        <mat-icon>download</mat-icon>
+      </div>
+      <div>
+        <h2>Esporta dati</h2>
+        <p>Scarica tutti i dati della tua azienda (anagrafiche, lavori, foto) in un file .zip.</p>
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <div class="card-body">
+      <div class="entity-chips">
+        <span class="chip"><mat-icon>place</mat-icon> Posizioni</span>
+        <span class="chip"><mat-icon>inventory_2</mat-icon> Prodotti</span>
+        <span class="chip"><mat-icon>people</mat-icon> Clienti</span>
+        <span class="chip"><mat-icon>store</mat-icon> Fornitori</span>
+        <span class="chip"><mat-icon>person</mat-icon> Utenti</span>
+        <span class="chip"><mat-icon>work</mat-icon> Lavori</span>
+        <span class="chip"><mat-icon>swap_horiz</mat-icon> Movimenti</span>
+        <span class="chip"><mat-icon>shopping_cart</mat-icon> Ordini acquisto</span>
+        <span class="chip"><mat-icon>event_available</mat-icon> Prenotazioni</span>
+        <span class="chip"><mat-icon>photo_library</mat-icon> Foto lavori</span>
+        <span class="chip"><mat-icon>event_busy</mat-icon> Assenze</span>
+      </div>
+      <p class="note">Il file .zip contiene <code>data.json</code> con i dati e la cartella <code>uploads/</code> con foto e video. Usalo come backup o per migrare verso un'altra istanza.</p>
+    </div>
+
+    <div class="card-actions">
+      <button mat-flat-button class="btn-export" (click)="exportData()" [disabled]="exporting">
+        <mat-icon>download</mat-icon>
+        {{ exporting ? 'Esportazione…' : 'Esporta dati' }}
+      </button>
+    </div>
+
+    <mat-progress-bar *ngIf="exporting" mode="indeterminate" class="progress-bar"></mat-progress-bar>
+  </mat-card>
+
+  <!-- ── IMPORT ─────────────────────────────────────────────────────────── -->
+  <mat-card class="section-card">
+    <div class="card-header">
+      <div class="card-icon import-icon">
+        <mat-icon>upload</mat-icon>
+      </div>
+      <div>
+        <h2>Importa dati</h2>
+        <p>Carica un file <code>.zip</code> o <code>.json</code> esportato precedentemente.</p>
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <div class="card-body">
+
+      <!-- Drop zone -->
+      <div *ngIf="!selectedFile"
+           class="drop-zone"
+           (dragover)="onDragOver($event)"
+           (drop)="onDrop($event)">
+        <input type="file" accept=".zip,.json" #fileInput (change)="onFileChange($event)" style="display:none">
+        <mat-icon class="drop-icon">upload_file</mat-icon>
+        <p class="drop-label">Trascina il file qui</p>
+        <p class="drop-sub">oppure</p>
+        <button mat-stroked-button (click)="fileInput.click()">
+          <mat-icon>folder_open</mat-icon> Scegli file
+        </button>
+      </div>
+
+      <!-- File loaded -->
+      <div *ngIf="selectedFile" class="file-loaded">
+        <div class="file-info">
+          <mat-icon class="file-ok">check_circle</mat-icon>
+          <span class="file-name">{{ fileName }}</span>
+          <span class="file-meta">· {{ formatBytes(selectedFile.size) }}</span>
+          <button mat-icon-button class="remove-btn" (click)="clearFile()">
+            <mat-icon>close</mat-icon>
+          </button>
+        </div>
+
+        <div class="import-warning">
+          <mat-icon>warning</mat-icon>
+          <p>L'importazione <strong>aggiunge</strong> nuovi record senza eliminare i dati esistenti. Gli utenti con email già presente vengono saltati.</p>
+        </div>
+      </div>
+
+      <!-- Import result -->
+      <div *ngIf="importResult?.success" class="import-result">
+        <div class="result-header">
+          <mat-icon class="result-icon">task_alt</mat-icon>
+          <h3>Importazione completata</h3>
+        </div>
+        <div class="result-grid">
+          <div class="result-item" *ngFor="let entry of statEntries(importResult!.stats!)">
+            <mat-icon>{{ entry.icon }}</mat-icon>
+            <span>{{ entry.label }}</span>
+            <strong>+{{ entry.value }}</strong>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="card-actions" *ngIf="selectedFile && !importResult?.success">
+      <button mat-flat-button class="btn-import" (click)="importData()" [disabled]="importing">
+        <mat-icon>upload</mat-icon>
+        {{ importing ? 'Importazione in corso…' : 'Avvia importazione' }}
+      </button>
+    </div>
+
+    <mat-progress-bar *ngIf="importing" mode="indeterminate" class="progress-bar"></mat-progress-bar>
+  </mat-card>
+
+  <!-- ── AUTO BACKUPS (superadmin only) ────────────────────────────────── -->
+  <mat-card class="section-card" *ngIf="auth.isSuperAdmin">
+    <div class="card-header">
+      <div class="card-icon export-icon">
+        <mat-icon>history</mat-icon>
+      </div>
+      <div>
+        <h2>Backup automatici</h2>
+        <p>Vengono creati automaticamente ogni 6 ore. Massimo 7 giorni di storico (28 backup), poi i più vecchi vengono sovrascritti.</p>
+      </div>
+    </div>
+
+    <mat-divider></mat-divider>
+
+    <div class="card-body">
+      <div class="card-actions" style="margin-bottom: 16px">
+        <button mat-stroked-button (click)="triggerBackup()" [disabled]="loadingBackups">
+          <mat-icon>play_arrow</mat-icon> Esegui backup ora
+        </button>
+        <button mat-stroked-button (click)="loadBackups()" [disabled]="loadingBackups">
+          <mat-icon>refresh</mat-icon> Aggiorna lista
+        </button>
+      </div>
+
+      <mat-progress-bar *ngIf="loadingBackups" mode="indeterminate" class="progress-bar"></mat-progress-bar>
+
+      <p *ngIf="!loadingBackups && backups.length === 0" class="note">
+        Nessun backup ancora disponibile. Verrà creato automaticamente entro 6 ore.
+      </p>
+
+      <table mat-table [dataSource]="backups" *ngIf="backups.length > 0" class="backup-table">
+        <ng-container matColumnDef="created_at">
+          <th mat-header-cell *matHeaderCellDef>Data</th>
+          <td mat-cell *matCellDef="let b">{{ b.created_at | date:'dd/MM/yyyy HH:mm:ss' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="db_size">
+          <th mat-header-cell *matHeaderCellDef>DB</th>
+          <td mat-cell *matCellDef="let b">{{ formatBytes(b.db_size) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="uploads_size">
+          <th mat-header-cell *matHeaderCellDef>Media</th>
+          <td mat-cell *matCellDef="let b">{{ formatBytes(b.uploads_size) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef style="text-align:right">Azioni</th>
+          <td mat-cell *matCellDef="let b" style="text-align:right">
+            <button mat-icon-button (click)="downloadBackupDb(b)" [disabled]="busyBackupTs === b.ts" matTooltip="Scarica DB (.sql)">
+              <mat-icon>storage</mat-icon>
+            </button>
+            <button mat-icon-button (click)="downloadBackupUploads(b)" [disabled]="busyBackupTs === b.ts || !b.uploads_size" matTooltip="Scarica uploads (.zip)">
+              <mat-icon>folder_zip</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="restoreBackup(b)" [disabled]="busyBackupTs === b.ts" matTooltip="Ripristina dal server">
+              <mat-icon>restore</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="['created_at','db_size','uploads_size','actions']"></tr>
+        <tr mat-row *matRowDef="let row; columns: ['created_at','db_size','uploads_size','actions']"></tr>
+      </table>
+
+      <mat-divider style="margin: 24px 0"></mat-divider>
+
+      <h3 style="margin: 0 0 8px">Ripristina da file</h3>
+      <p class="note">Carica i file scaricati in precedenza per ripristinare il sistema su un'altra istanza o dopo una perdita di dati.</p>
+
+      <div class="card-actions" style="flex-wrap: wrap; gap: 12px; margin-top: 12px">
+        <div style="display:flex; align-items:center; gap:8px">
+          <button mat-stroked-button (click)="dbRestoreInput.click()" [disabled]="restoringDb || restoringUploads">
+            <mat-icon>storage</mat-icon> Ripristina DB (.sql)
+          </button>
+          <span *ngIf="restoringDb" class="note">Ripristino in corso...</span>
+          <input #dbRestoreInput type="file" accept=".sql" hidden (change)="onRestoreDbFile($event)">
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px">
+          <button mat-stroked-button (click)="uploadsRestoreInput.click()" [disabled]="restoringDb || restoringUploads">
+            <mat-icon>folder_zip</mat-icon> Ripristina uploads (.zip)
+          </button>
+          <span *ngIf="restoringUploads" class="note">Ripristino in corso...</span>
+          <input #uploadsRestoreInput type="file" accept=".zip" hidden (change)="onRestoreUploadsFile($event)">
+        </div>
+      </div>
+    </div>
+  </mat-card>
+
+</div>

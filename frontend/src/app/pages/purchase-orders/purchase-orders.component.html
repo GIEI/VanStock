@@ -1,0 +1,92 @@
+<div class="po-page">
+  <div class="po-header">
+    <h2>{{ 'PO.TITLE' | translate }}</h2>
+    <button mat-raised-button color="primary"
+            *ngIf="auth.isAdmin"
+            [disabled]="creating"
+            (click)="createNew()">
+      <mat-icon>add</mat-icon> {{ 'PO.NEW' | translate }}
+    </button>
+  </div>
+
+  <!-- Suggestions banner -->
+  <mat-card class="suggestions-card" *ngIf="suggestions.length">
+    <mat-card-header>
+      <mat-icon mat-card-avatar class="warn-icon">warning</mat-icon>
+      <mat-card-title>{{ 'PO.SUGGESTIONS_TITLE' | translate }}</mat-card-title>
+      <mat-card-subtitle>{{ suggestions.length }} {{ 'PO.PRODUCTS_BELOW_MIN' | translate }}</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="suggestion-row" *ngFor="let s of suggestions">
+        <mat-checkbox
+          [checked]="selectedSuggestions.has(s.product_id)"
+          (change)="toggleSuggestion(s.product_id)"
+          *ngIf="auth.isAdmin">
+        </mat-checkbox>
+        <div class="sug-info">
+          <span class="sug-name">{{ s.product_name }}</span>
+          <span class="sug-sku" *ngIf="s.sku">{{ s.sku }}</span>
+        </div>
+        <div class="sug-qty">
+          <span class="qty-current badge-critical">{{ s.current_qty | number:'1.0-2' }} {{ s.unit }}</span>
+          <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+          <span class="qty-to-order">+{{ s.qty_to_order | number:'1.0-2' }}</span>
+        </div>
+        <div class="sug-supplier" *ngIf="s.supplier_name">
+          <mat-icon>store</mat-icon>
+          <span>{{ s.supplier_name }}</span>
+          <span *ngIf="s.purchase_price" class="sug-price">€{{ s.purchase_price | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </mat-card-content>
+    <mat-card-actions *ngIf="auth.isAdmin">
+      <button mat-raised-button color="warn"
+              [disabled]="selectedSuggestions.size === 0 || creating"
+              (click)="createFromSuggestions()">
+        <mat-icon>shopping_cart</mat-icon>
+        {{ 'PO.CREATE_FROM_SUGGESTIONS' | translate }} ({{ selectedSuggestions.size }})
+      </button>
+    </mat-card-actions>
+  </mat-card>
+
+  <!-- Loading -->
+  <div class="loading-spinner" *ngIf="loading">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+
+  <!-- Orders list -->
+  <div class="orders-list" *ngIf="!loading">
+    <div class="empty-state" *ngIf="!orders.length">
+      <mat-icon>shopping_bag</mat-icon>
+      <p>{{ 'PO.EMPTY' | translate }}</p>
+    </div>
+
+    <mat-card class="order-card" *ngFor="let o of orders" [routerLink]="['/purchase-orders', o.id]">
+      <mat-card-content>
+        <div class="order-row">
+          <div class="order-id">
+            <mat-icon [class]="'status-icon-' + o.status">{{ statusIcon(o.status) }}</mat-icon>
+            <span class="order-num">#{{ o.id }}</span>
+          </div>
+          <div class="order-main">
+            <span class="supplier-name">{{ o.supplier_name || ('PO.NO_SUPPLIER' | translate) }}</span>
+            <span class="order-date">{{ o.created_at | date:'dd/MM/yyyy' }}</span>
+          </div>
+          <div class="order-meta">
+            <mat-chip [color]="statusColor(o.status)" highlighted>{{ 'PO.STATUS.' + o.status.toUpperCase() | translate }}</mat-chip>
+            <span class="item-count">{{ o.item_count }} {{ 'PO.ITEMS' | translate }}</span>
+            <span class="total-value" *ngIf="o.total_value">€{{ o.total_value | number:'1.2-2' }}</span>
+          </div>
+          <div class="order-actions" (click)="$event.stopPropagation()">
+            <button mat-icon-button color="warn"
+                    *ngIf="auth.isAdmin && o.status === 'bozza'"
+                    (click)="deleteOrder(o)"
+                    [matTooltip]="'COMMON.DELETE' | translate">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

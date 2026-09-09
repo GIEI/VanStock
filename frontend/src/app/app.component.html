@@ -1,0 +1,222 @@
+<!-- App shell — only when logged in -->
+<ng-container *ngIf="isLoggedIn; else noShell">
+
+  <mat-sidenav-container class="sidenav-container">
+
+    <!-- ── Sidebar ─────────────────────────────────────── -->
+    <mat-sidenav
+      #drawer
+      [attr.role]="isHandset ? 'dialog' : 'navigation'"
+      [mode]="isHandset ? 'over' : 'side'"
+      [opened]="!isHandset"
+      [disableClose]="!isHandset"
+      fixedInViewport>
+
+      <!-- Brand -->
+      <div class="sidenav-brand">
+        <img *ngIf="auth.companyLogoUrl"
+             [src]="auth.companyLogoUrl | photoUrl"
+             alt="Logo"
+             class="brand-logo">
+        <div *ngIf="!auth.companyLogoUrl" class="brand-icon">
+          <mat-icon>inventory</mat-icon>
+        </div>
+        <span class="brand-name">{{auth.currentUser?.company_name || 'VanStock'}}</span>
+      </div>
+
+      <!-- Nav -->
+      <mat-nav-list class="nav-list" disableRipple>
+
+        <!-- Regular items — drag-and-drop (admin only) -->
+        <div cdkDropList
+             [cdkDropListData]="displayFlatItems"
+             (cdkDropListDropped)="onDropFlat($event)"
+             [cdkDropListDisabled]="!auth.isAdmin"
+             class="flat-drop-list">
+          <a class="nav-item"
+             *ngFor="let item of displayFlatItems"
+             cdkDrag
+             [cdkDragDisabled]="!auth.isAdmin"
+             [routerLink]="item.route"
+             routerLinkActive="active-link"
+             (click)="isHandset && drawer.close()">
+            <mat-icon class="drag-handle" cdkDragHandle *ngIf="auth.isAdmin">drag_indicator</mat-icon>
+            <mat-icon
+              [matBadge]="item.route === '/dashboard' && lowStockCount > 0 ? lowStockCount : null"
+              matBadgeColor="warn"
+              matBadgeSize="small">
+              {{item.icon}}
+            </mat-icon>
+            {{item.labelKey | translate}}
+            <!-- Drag preview -->
+            <div *cdkDragPreview class="nav-drag-preview">
+              <mat-icon>{{item.icon}}</mat-icon>
+              {{item.labelKey | translate}}
+            </div>
+          </a>
+        </div>
+
+        <!-- Amministrazione group -->
+        <div class="nav-group" *ngIf="displayAdminItems.length > 0 && auth.isAdmin">
+          <button type="button" class="nav-group-header"
+                  [class.active]="isAdminGroupActive"
+                  (click)="adminGroupExpanded = !adminGroupExpanded">
+            <mat-icon>admin_panel_settings</mat-icon>
+            <span>{{'NAV.ADMIN_GROUP' | translate}}</span>
+            <mat-icon class="expand-icon" [class.expanded]="adminGroupExpanded">expand_more</mat-icon>
+          </button>
+          <div class="nav-group-items" [class.open]="adminGroupExpanded"
+               cdkDropList
+               [cdkDropListData]="displayAdminItems"
+               (cdkDropListDropped)="onDropAdmin($event)"
+               [cdkDropListDisabled]="!auth.isAdmin">
+            <a class="nav-item nav-item-child"
+               *ngFor="let item of displayAdminItems"
+               cdkDrag
+               [cdkDragDisabled]="!auth.isAdmin"
+               [routerLink]="item.route"
+               routerLinkActive="active-link"
+               (click)="isHandset && drawer.close()">
+              <mat-icon class="drag-handle" cdkDragHandle *ngIf="auth.isAdmin">drag_indicator</mat-icon>
+              <mat-icon>{{item.icon}}</mat-icon>
+              {{item.labelKey | translate}}
+              <!-- Drag preview -->
+              <div *cdkDragPreview class="nav-drag-preview nav-drag-preview--child">
+                <mat-icon>{{item.icon}}</mat-icon>
+                {{item.labelKey | translate}}
+              </div>
+            </a>
+          </div>
+        </div>
+
+      </mat-nav-list>
+
+      <!-- Footer: user + logout -->
+      <div class="sidenav-footer">
+        <div class="user-row">
+          <div class="user-avatar"><mat-icon>person</mat-icon></div>
+          <div class="user-meta">
+            <span class="user-name">{{auth.currentUser?.name}}</span>
+            <span class="user-company">{{auth.currentUser?.company_name}}</span>
+          </div>
+        </div>
+        <button type="button" mat-button class="logout-btn" (click)="logout()">
+          <mat-icon>logout</mat-icon> {{'APP.LOGOUT' | translate}}
+        </button>
+      </div>
+    </mat-sidenav>
+
+    <!-- ── Main content ────────────────────────────────── -->
+    <mat-sidenav-content>
+
+      <!-- Glass top bar -->
+      <mat-toolbar class="main-toolbar">
+        <button type="button" mat-icon-button *ngIf="isHandset" (click)="drawer.toggle()">
+          <mat-icon>menu</mat-icon>
+        </button>
+
+        <!-- Company logo on mobile toolbar (left) -->
+        <ng-container *ngIf="isHandset">
+          <img *ngIf="auth.companyLogoUrl"
+               [src]="auth.companyLogoUrl | photoUrl"
+               alt="Logo"
+               class="toolbar-logo">
+          <span class="toolbar-title" *ngIf="!auth.companyLogoUrl">
+            {{auth.currentUser?.company_name || 'VanStock'}}
+          </span>
+        </ng-container>
+
+        <span class="spacer"></span>
+        <a mat-icon-button routerLink="/scanner" aria-label="Scanner">
+          <mat-icon>qr_code_scanner</mat-icon>
+        </a>
+
+        <button type="button" mat-icon-button [matMenuTriggerFor]="notifMenu" aria-label="Notifiche">
+          <mat-icon [matBadge]="(notif.unreadCount$ | async) || null" matBadgeColor="warn" matBadgeSize="small">
+            notifications
+          </mat-icon>
+        </button>
+        <mat-menu #notifMenu="matMenu" class="notif-menu">
+          <div class="notif-menu-header" mat-menu-item disabled>
+            <strong>Notifiche</strong>
+            <button type="button" mat-button *ngIf="(notif.unreadCount$ | async)! > 0"
+                    (click)="notif.markAllAsRead()">
+              Segna tutte come lette
+            </button>
+          </div>
+          <mat-divider></mat-divider>
+          <ng-container *ngIf="(notif.notifications$ | async) as notifications">
+            <button type="button" mat-menu-item disabled *ngIf="notifications.length === 0">
+              Nessuna notifica
+            </button>
+            <div *ngFor="let n of notifications"
+                 mat-menu-item
+                 class="notif-item"
+                 [class.notif-unread]="!n.read_at"
+                 (click)="openNotification(n)">
+              <div class="notif-item-content">
+                <div class="notif-item-title">{{n.title}}</div>
+                <div class="notif-item-body" *ngIf="n.body">{{n.body}}</div>
+              </div>
+              <button type="button" mat-icon-button *ngIf="n.read_at"
+                      matTooltip="Elimina notifica"
+                      (click)="$event.stopPropagation(); notif.deleteNotification(n.id)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </ng-container>
+        </mat-menu>
+
+        <button type="button" mat-icon-button [matMenuTriggerFor]="userMenu">
+          <mat-icon>account_circle</mat-icon>
+        </button>
+        <mat-menu #userMenu="matMenu">
+          <div class="menu-user-header" mat-menu-item disabled>
+            <strong>{{auth.currentUser?.name}}</strong><br>
+            <small>{{auth.currentUser?.email}}</small>
+          </div>
+          <mat-divider></mat-divider>
+
+          <!-- Language submenu -->
+          <button type="button" mat-menu-item [matMenuTriggerFor]="langMenu">
+            <mat-icon>translate</mat-icon>
+            <span>{{langSvc.currentLanguage.flag}} {{'APP.LANGUAGE' | translate}}</span>
+          </button>
+          <mat-menu #langMenu="matMenu">
+            <button type="button" mat-menu-item
+                    *ngFor="let lang of languages"
+                    (click)="langSvc.use(lang.code)"
+                    [class.lang-active]="langSvc.current === lang.code">
+              <span class="lang-flag">{{lang.flag}}</span>
+              <span>{{lang.label}}</span>
+            </button>
+          </mat-menu>
+
+          <!-- Push notifications toggle -->
+          <button type="button" mat-menu-item *ngIf="push.isSupported" (click)="togglePush()" [disabled]="pushLoading">
+            <mat-icon *ngIf="!pushLoading">{{pushSubscribed ? 'notifications_active' : 'notifications_off'}}</mat-icon>
+            <mat-spinner *ngIf="pushLoading" diameter="18" class="push-spinner"></mat-spinner>
+            <span>{{pushLoading ? 'Attendere…' : (pushSubscribed ? 'Disattiva notifiche' : 'Attiva notifiche')}}</span>
+          </button>
+
+          <mat-divider></mat-divider>
+          <button type="button" mat-menu-item (click)="logout()">
+            <mat-icon>logout</mat-icon> {{'APP.LOGOUT' | translate}}
+          </button>
+        </mat-menu>
+      </mat-toolbar>
+
+      <!-- Page -->
+      <div>
+        <router-outlet></router-outlet>
+      </div>
+
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+
+</ng-container>
+
+<!-- Auth pages — no shell -->
+<ng-template #noShell>
+  <router-outlet></router-outlet>
+</ng-template>

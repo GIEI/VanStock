@@ -1,0 +1,89 @@
+<div class="system-container">
+
+  <div class="page-header">
+    <mat-icon class="header-icon">settings</mat-icon>
+    <div>
+      <h1>{{ 'SYSTEM.TITLE' | translate }}</h1>
+      <p class="subtitle">{{ 'SYSTEM.SUBTITLE' | translate }}</p>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-wrapper">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <mat-card *ngIf="!loading" class="shift-card">
+    <mat-card-header>
+      <mat-icon mat-card-avatar>schedule</mat-icon>
+      <mat-card-title>{{ 'SYSTEM.WORK_SHIFTS' | translate }}</mat-card-title>
+      <mat-card-subtitle>{{ 'SYSTEM.WORK_SHIFTS_HINT' | translate }}</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+
+      <!-- Morning shift -->
+      <div class="shift-section">
+        <div class="shift-label">
+          <mat-icon class="shift-icon morning">wb_sunny</mat-icon>
+          <span>{{ 'SYSTEM.MORNING' | translate }}</span>
+        </div>
+        <div class="time-row">
+          <mat-form-field appearance="outline" class="time-field">
+            <mat-label>{{ 'SYSTEM.START' | translate }}</mat-label>
+            <input matInput type="time" [(ngModel)]="shift.morning_start" required>
+          </mat-form-field>
+          <span class="time-separator">–</span>
+          <mat-form-field appearance="outline" class="time-field">
+            <mat-label>{{ 'SYSTEM.END' | translate }}</mat-label>
+            <input matInput type="time" [(ngModel)]="shift.morning_end" required>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="time-field">
+            <mat-label>{{ 'SYSTEM.LATE_THRESHOLD' | translate }}</mat-label>
+            <input matInput type="time" [(ngModel)]="shift.morning_late_threshold" required>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <mat-divider></mat-divider>
+
+      <!-- Afternoon shift -->
+      <div class="shift-section">
+        <div class="shift-label">
+          <mat-icon class="shift-icon afternoon">wb_twilight</mat-icon>
+          <span>{{ 'SYSTEM.AFTERNOON' | translate }}</span>
+        </div>
+        <div class="time-row">
+          <mat-form-field appearance="outline" class="time-field">
+            <mat-label>{{ 'SYSTEM.START' | translate }}</mat-label>
+            <input matInput type="time" [(ngModel)]="shift.afternoon_start" required>
+          </mat-form-field>
+          <span class="time-separator">–</span>
+          <mat-form-field appearance="outline" class="time-field">
+            <mat-label>{{ 'SYSTEM.END' | translate }}</mat-label>
+            <input matInput type="time" [(ngModel)]="shift.afternoon_end" required>
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="time-field">
+            <mat-label>{{ 'SYSTEM.LATE_THRESHOLD' | translate }}</mat-label>
+            <input matInput type="time" [(ngModel)]="shift.afternoon_late_threshold" required>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <!-- Logic description -->
+      <div class="logic-info">
+        <mat-icon>info_outline</mat-icon>
+        <p>{{ 'SYSTEM.LOGIC_DESC' | translate }}</p>
+      </div>
+
+    </mat-card-content>
+
+    <mat-card-actions align="end">
+      <button mat-flat-button color="primary" (click)="save()" [disabled]="saving">
+        <mat-spinner *ngIf="saving" diameter="18" class="btn-spinner"></mat-spinner>
+        <mat-icon *ngIf="!saving">save</mat-icon>
+        {{ (saving ? 'COMMON.SAVING' : 'COMMON.SAVE') | translate }}
+      </button>
+    </mat-card-actions>
+  </mat-card>
+
+</div>

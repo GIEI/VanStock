@@ -1,0 +1,163 @@
+<div class="page-container report-root">
+
+  <!-- ── HEADER ────────────────────────────────────────────────────────────── -->
+  <div class="report-header no-print">
+    <h2 class="report-title">
+      <mat-icon>summarize</mat-icon>
+      {{ 'VAN_REPORT.TITLE' | translate }}
+    </h2>
+
+    <div class="report-actions" *ngIf="movements.length > 0">
+      <button type="button" mat-raised-button color="primary" (click)="print()">
+        <mat-icon>print</mat-icon> {{ 'VAN_REPORT.PRINT_PDF' | translate }}
+      </button>
+    </div>
+  </div>
+
+  <!-- ── FILTRI ─────────────────────────────────────────────────────────────── -->
+  <div class="filters-card no-print">
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'VAN_REPORT.LOCATION_LABEL' | translate }}</mat-label>
+      <mat-select [(ngModel)]="locationId" (ngModelChange)="onLocationChange()">
+        <mat-option [value]="null">{{ 'COMMON.SELECT' | translate }}</mat-option>
+        <mat-option *ngFor="let l of locations" [value]="l.id">{{ l.name }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'VAN_REPORT.DATE_LABEL' | translate }}</mat-label>
+      <input matInput [matDatepicker]="picker" [(ngModel)]="reportDate" (ngModelChange)="onDateChange()" [title]="'VAN_REPORT.DATE_LABEL' | translate">
+      <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker [dateClass]="dateClass"></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" *ngIf="auth.isAdmin && availableUsers.length > 0">
+      <mat-label>{{ 'VAN_REPORT.OPERATOR' | translate }}</mat-label>
+      <mat-select [(ngModel)]="filterUser" (ngModelChange)="onUserFilterChange()">
+        <mat-option value="">{{ 'VAN_REPORT.ALL_OPERATORS' | translate }}</mat-option>
+        <mat-option *ngFor="let u of availableUsers" [value]="u">{{ u }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <!-- ── LOADING ────────────────────────────────────────────────────────────── -->
+  <div *ngIf="loading" class="spinner-wrap no-print">
+    <mat-spinner diameter="40" class="spinner-center"></mat-spinner>
+  </div>
+
+  <!-- ── NESSUNA POSIZIONE SELEZIONATA ─────────────────────────────────────── -->
+  <div *ngIf="!loading && !locationId" class="empty-hint no-print">
+    <mat-icon>local_shipping</mat-icon>
+    <p>{{ 'VAN_REPORT.SELECT_LOCATION_HINT' | translate }}</p>
+  </div>
+
+  <!-- ── NESSUN MOVIMENTO ───────────────────────────────────────────────────── -->
+  <div *ngIf="!loading && locationId && movements.length === 0" class="empty-hint no-print">
+    <mat-icon>inbox</mat-icon>
+    <p>{{ 'VAN_REPORT.NO_MOVEMENTS' | translate }}</p>
+  </div>
+
+  <!-- ── REPORT ─────────────────────────────────────────────────────────────── -->
+  <ng-container *ngIf="!loading && movements.length > 0">
+
+    <!-- Print header (solo in stampa) -->
+    <div class="print-only print-header">
+      <h1>{{ 'VAN_REPORT.TITLE' | translate }} — {{ selectedLocation?.name }}</h1>
+      <p>{{ reportDate | date:'dd MMMM yyyy' }}</p>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <mat-icon>swap_horiz</mat-icon>
+        <div>
+          <span class="kpi-val">{{ totalMovements }}</span>
+          <span class="kpi-lbl">{{ 'VAN_REPORT.MOVEMENTS_KPI' | translate }}</span>
+        </div>
+      </div>
+      <div class="kpi-card kpi-card--warn">
+        <mat-icon>remove_circle</mat-icon>
+        <div>
+          <span class="kpi-val">{{ totalScarico }}</span>
+          <span class="kpi-lbl">{{ 'VAN_REPORT.CONSUMED_KPI' | translate }}</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <mat-icon>local_shipping</mat-icon>
+        <div>
+          <span class="kpi-val">{{ selectedLocation?.name }}</span>
+          <span class="kpi-lbl">{{ 'VAN_REPORT.LOCATION_KPI' | translate }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Riepilogo per prodotto -->
+    <div class="section-label">{{ 'VAN_REPORT.PRODUCT_SUMMARY' | translate }}</div>
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th class="col-name">{{ 'VAN_REPORT.PRODUCT_COL' | translate }}</th>
+          <th class="col-sku">{{ 'VAN_REPORT.SKU_COL' | translate }}</th>
+          <th class="col-num">{{ 'VAN_REPORT.LOADED_COL' | translate }}</th>
+          <th class="col-num">{{ 'VAN_REPORT.CONSUMED_COL' | translate }}</th>
+          <th class="col-num">{{ 'VAN_REPORT.TRANS_IN_COL' | translate }}</th>
+          <th class="col-num">{{ 'VAN_REPORT.TRANS_OUT_COL' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let s of summary"
+            [class.row-consumed]="s.scarico > 0 || s.trasferimento_out > 0">
+          <td class="col-name">{{ s.product_name }}</td>
+          <td class="col-sku">{{ s.sku }}</td>
+          <td class="col-num">
+            <span *ngIf="s.carico > 0" class="num-badge badge-carico">+{{ s.carico }} {{ s.unit }}</span>
+            <span *ngIf="s.carico === 0" class="num-zero">—</span>
+          </td>
+          <td class="col-num">
+            <span *ngIf="s.scarico > 0" class="num-badge badge-scarico">-{{ s.scarico }} {{ s.unit }}</span>
+            <span *ngIf="s.scarico === 0" class="num-zero">—</span>
+          </td>
+          <td class="col-num">
+            <span *ngIf="s.trasferimento_in > 0" class="num-badge badge-trasp">+{{ s.trasferimento_in }} {{ s.unit }}</span>
+            <span *ngIf="s.trasferimento_in === 0" class="num-zero">—</span>
+          </td>
+          <td class="col-num">
+            <span *ngIf="s.trasferimento_out > 0" class="num-badge badge-trasp-out">-{{ s.trasferimento_out }} {{ s.unit }}</span>
+            <span *ngIf="s.trasferimento_out === 0" class="num-zero">—</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Dettaglio movimenti -->
+    <div class="section-label section-label--gap">{{ 'VAN_REPORT.MOVEMENT_DETAILS' | translate }}</div>
+    <div class="mov-list">
+      <div *ngFor="let m of movements" class="mov-row">
+        <div class="mov-dot" [style.background]="movColor(m.type)">
+          <mat-icon>{{ movIcon(m.type) }}</mat-icon>
+        </div>
+        <div class="mov-info">
+          <span class="mov-product">{{ m.product_name }}</span>
+          <span class="mov-meta">
+            {{ m.quantity }} {{ m.unit }} · {{ movLabel(m.type) }}
+            <span *ngIf="m.from_location_name"> {{ 'VAN_REPORT.FROM' | translate }} {{ m.from_location_name }}</span>
+            <span *ngIf="m.to_location_name"> → {{ m.to_location_name }}</span>
+            <span *ngIf="m.job_title"> · 🔧 {{ m.job_title }}</span>
+          </span>
+          <span *ngIf="m.notes" class="mov-notes">{{ m.notes }}</span>
+          <span *ngIf="m.created_by" class="mov-author">
+            <mat-icon>person</mat-icon>{{ m.created_by }}
+          </span>
+        </div>
+        <span class="mov-time">{{ m.created_at | date:'HH:mm' }}</span>
+      </div>
+    </div>
+
+    <!-- Footer stampa -->
+    <div class="print-only print-footer">
+      <p>{{ 'VAN_REPORT.GENERATED_ON' | translate }} {{ reportDate | date:'dd/MM/yyyy' }} — VanStock</p>
+    </div>
+
+  </ng-container>
+
+</div>

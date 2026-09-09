@@ -1,0 +1,285 @@
+<div class="po-detail" *ngIf="!loading && order">
+  <!-- Header -->
+  <div class="detail-header">
+    <button mat-icon-button routerLink="/purchase-orders">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div class="header-title">
+      <h2>{{ 'PO.ORDER' | translate }} #{{ order.id }}</h2>
+      <mat-chip [color]="statusColor(order.status)" highlighted>
+        {{ 'PO.STATUS.' + order.status.toUpperCase() | translate }}
+      </mat-chip>
+    </div>
+    <div class="header-actions" *ngIf="auth.isAdmin">
+      <button mat-stroked-button color="primary"
+              *ngIf="isDraft"
+              [disabled]="saving || !order.items?.length"
+              (click)="markSent()">
+        <mat-icon>send</mat-icon> {{ 'PO.MARK_SENT' | translate }}
+      </button>
+      <button mat-raised-button color="accent"
+              *ngIf="isSent"
+              [disabled]="receiving"
+              (click)="receiveOrder()">
+        <mat-icon>inventory</mat-icon> {{ 'PO.MARK_RECEIVED' | translate }}
+      </button>
+      <button mat-icon-button color="warn"
+              *ngIf="isDraft"
+              (click)="deleteOrder()"
+              [matTooltip]="'COMMON.DELETE' | translate">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Info card -->
+  <mat-card class="info-card">
+    <mat-card-content>
+      <!-- Edit mode -->
+      <form *ngIf="editingInfo && isDraft && auth.isAdmin"
+            [formGroup]="infoForm" (ngSubmit)="saveInfo()" class="info-edit-form">
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'PO.SUPPLIER' | translate }}</mat-label>
+          <mat-select formControlName="supplier_id">
+            <mat-option [value]="null">{{ 'PO.NO_SUPPLIER' | translate }}</mat-option>
+            <mat-option *ngFor="let s of allSuppliers" [value]="s.id">{{ s.name }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>{{ 'COMMON.NOTES' | translate }}</mat-label>
+          <input matInput formControlName="notes">
+        </mat-form-field>
+        <div class="form-actions">
+          <button mat-button type="button" (click)="editingInfo = false">{{ 'COMMON.CANCEL' | translate }}</button>
+          <button mat-raised-button color="primary" type="submit">{{ 'COMMON.SAVE' | translate }}</button>
+        </div>
+      </form>
+
+      <!-- View mode -->
+      <div *ngIf="!editingInfo" class="info-view">
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">{{ 'PO.SUPPLIER' | translate }}</span>
+            <span class="info-value">{{ order.supplier_name || ('PO.NO_SUPPLIER' | translate) }}</span>
+            <span class="info-sub" *ngIf="order.supplier_contact">{{ order.supplier_contact }}</span>
+            <span class="info-sub" *ngIf="order.supplier_phone">{{ order.supplier_phone }}</span>
+            <span class="info-sub" *ngIf="order.supplier_email">{{ order.supplier_email }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">{{ 'PO.CREATED_BY' | translate }}</span>
+            <span class="info-value">{{ order.created_by }}</span>
+            <span class="info-sub">{{ order.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div class="info-item" *ngIf="order.ordered_at">
+            <span class="info-label">{{ 'PO.ORDERED_AT' | translate }}</span>
+            <span class="info-value">{{ order.ordered_at | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div class="info-item" *ngIf="order.received_at">
+            <span class="info-label">{{ 'PO.RECEIVED_AT' | translate }}</span>
+            <span class="info-value received">{{ order.received_at | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div class="info-item" *ngIf="order.notes">
+            <span class="info-label">{{ 'COMMON.NOTES' | translate }}</span>
+            <span class="info-value">{{ order.notes }}</span>
+          </div>
+        </div>
+        <button mat-icon-button *ngIf="isDraft && auth.isAdmin"
+                (click)="startEditInfo()"
+                [matTooltip]="'COMMON.EDIT' | translate"
+                class="info-edit-btn">
+          <mat-icon>edit</mat-icon>
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Body: two-column when draft, otherwise single column -->
+  <div class="po-body" [class.po-body--split]="isDraft && auth.isAdmin">
+
+    <!-- LEFT: low-stock suggestions panel -->
+    <mat-card class="sugg-panel" *ngIf="isDraft && auth.isAdmin">
+      <div class="sugg-panel-header">
+        <mat-icon class="sugg-panel-icon">warning_amber</mat-icon>
+        <div>
+          <div class="sugg-panel-title">{{ 'PO.SUGGESTIONS_TITLE' | translate }}</div>
+          <div class="sugg-panel-sub">{{ suggestions.length }} {{ 'PO.PRODUCTS_BELOW_MIN' | translate }}</div>
+        </div>
+      </div>
+      <div class="sugg-list">
+        <ng-container *ngFor="let s of suggestions">
+          <button type="button" class="sugg-item"
+                  *ngIf="isNotInOrder(s.product_id)"
+                  (click)="addFromSuggestion(s)"
+                  [matTooltip]="'PO.ADD_ITEM' | translate">
+            <div class="sugg-item-info">
+              <span class="sugg-name">{{ s.product_name }}</span>
+              <span class="sugg-sku" *ngIf="s.sku">{{ s.sku }}</span>
+            </div>
+            <div class="sugg-item-right">
+              <span class="sugg-deficit">-{{ s.qty_to_order | number:'1.0-2' }} {{ s.unit }}</span>
+              <mat-icon class="sugg-add-icon">add_circle</mat-icon>
+            </div>
+          </button>
+          <div class="sugg-item sugg-item--added" *ngIf="!isNotInOrder(s.product_id)">
+            <div class="sugg-item-info">
+              <span class="sugg-name">{{ s.product_name }}</span>
+              <span class="sugg-sku" *ngIf="s.sku">{{ s.sku }}</span>
+            </div>
+            <mat-icon class="sugg-done-icon">check_circle</mat-icon>
+          </div>
+        </ng-container>
+        <div *ngIf="!suggestions.length" class="sugg-empty">
+          <mat-icon>check_circle_outline</mat-icon>
+          <span>Nessun prodotto<br>sotto scorta minima</span>
+        </div>
+      </div>
+    </mat-card>
+
+    <!-- RIGHT: items card -->
+    <mat-card class="items-card">
+      <mat-card-header>
+        <mat-card-title>{{ 'PO.ITEMS' | translate }} ({{ order.items?.length ?? 0 }})</mat-card-title>
+        <div class="card-header-actions" *ngIf="isDraft && auth.isAdmin && !showAddItem">
+          <button type="button" mat-raised-button color="primary" (click)="showAddItem = true">
+            <mat-icon>add</mat-icon> {{ 'PO.ADD_ITEM' | translate }}
+          </button>
+        </div>
+      </mat-card-header>
+
+      <!-- Add item form -->
+      <mat-card-content *ngIf="showAddItem && isDraft && auth.isAdmin">
+        <form [formGroup]="addItemForm" (ngSubmit)="addItem()" class="add-item-form">
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'PO.PRODUCT' | translate }}</mat-label>
+            <mat-select formControlName="product_id">
+              <mat-option *ngFor="let p of availableProducts" [value]="p.id">
+                {{ p.name }} <span *ngIf="p.sku" class="sku-opt">({{ p.sku }})</span>
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'PO.QTY_ORDERED' | translate }}</mat-label>
+            <input matInput type="number" formControlName="quantity_ordered" min="0.001" step="1" [title]="'PO.QTY_ORDERED' | translate">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>{{ 'PO.UNIT_PRICE' | translate }}</mat-label>
+            <input matInput type="number" formControlName="unit_price" min="0" step="0.01" [title]="'PO.UNIT_PRICE' | translate">
+            <span matTextPrefix>€&nbsp;</span>
+          </mat-form-field>
+          <div class="form-actions">
+            <button mat-button type="button" (click)="showAddItem = false">{{ 'COMMON.CANCEL' | translate }}</button>
+            <button mat-raised-button color="primary" type="submit" [disabled]="addItemForm.invalid">
+              <mat-icon>add</mat-icon> {{ 'PO.ADD_ITEM' | translate }}
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+
+      <mat-card-content>
+        <div class="empty-items" *ngIf="!order.items?.length && !showAddItem">
+          <mat-icon>inbox</mat-icon>
+          <p>{{ 'PO.NO_ITEMS' | translate }}</p>
+        </div>
+
+        <div class="items-table" *ngIf="order.items?.length">
+          <div class="item-row header-row">
+            <span>{{ 'PO.PRODUCT' | translate }}</span>
+            <span class="align-right">{{ 'PO.QTY_ORDERED' | translate }}</span>
+            <span class="align-right">{{ 'PO.QTY_RECEIVED' | translate }}</span>
+            <span class="align-right">{{ 'PO.UNIT_PRICE' | translate }}</span>
+            <span class="align-right">{{ 'PO.SUBTOTAL' | translate }}</span>
+            <span></span>
+          </div>
+
+          <ng-container *ngFor="let item of order.items">
+
+            <!-- Edit inline form -->
+            <div class="item-row item-row--editing" *ngIf="editingItemId === item.id" [formGroup]="editItemForm">
+              <div class="item-name">
+                <span>{{ item.product_name }}</span>
+                <span class="item-sku" *ngIf="item.sku">{{ item.sku }}</span>
+              </div>
+              <mat-form-field appearance="outline" class="edit-field">
+                <mat-label>{{ 'PO.QTY_ORDERED' | translate }}</mat-label>
+                <input matInput type="number" formControlName="quantity_ordered" min="0.001" step="1" [title]="'PO.QTY_ORDERED' | translate">
+                <span matTextSuffix>{{ item.unit }}</span>
+              </mat-form-field>
+              <span></span>
+              <mat-form-field appearance="outline" class="edit-field">
+                <mat-label>{{ 'PO.UNIT_PRICE' | translate }}</mat-label>
+                <input matInput type="number" formControlName="unit_price" min="0" step="0.01" [title]="'PO.UNIT_PRICE' | translate">
+                <span matTextPrefix>€&nbsp;</span>
+              </mat-form-field>
+              <span></span>
+              <span class="item-actions">
+                <button type="button" mat-icon-button color="primary"
+                        (click)="saveEditItem(item)"
+                        [matTooltip]="'COMMON.SAVE' | translate">
+                  <mat-icon>check</mat-icon>
+                </button>
+                <button type="button" mat-icon-button
+                        (click)="cancelEditItem()"
+                        [matTooltip]="'COMMON.CANCEL' | translate">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </span>
+            </div>
+
+            <!-- Normal row -->
+            <div class="item-row" *ngIf="editingItemId !== item.id">
+              <div class="item-name">
+                <span>{{ item.product_name }}</span>
+                <span class="item-sku" *ngIf="item.sku">{{ item.sku }}</span>
+                <span class="lot-badge" *ngIf="item.track_lots">
+                  <mat-icon>inventory_2</mat-icon> {{ 'PO.TRACK_LOTS' | translate }}
+                </span>
+              </div>
+              <span class="align-right">{{ item.quantity_ordered | number:'1.0-3' }} {{ item.unit }}</span>
+              <span class="align-right received-qty" *ngIf="item.quantity_received != null">
+                {{ item.quantity_received | number:'1.0-3' }} {{ item.unit }}
+              </span>
+              <span class="align-right" *ngIf="item.quantity_received == null">—</span>
+              <span class="align-right">{{ item.unit_price != null ? ('€' + (item.unit_price | number:'1.2-2')) : '—' }}</span>
+              <span class="align-right subtotal">
+                {{ item.unit_price != null ? ('€' + (item.quantity_ordered * item.unit_price | number:'1.2-2')) : '—' }}
+              </span>
+              <span class="item-actions">
+                <button type="button" mat-icon-button *ngIf="isDraft && auth.isAdmin"
+                        (click)="startEditItem(item)"
+                        [matTooltip]="'COMMON.EDIT' | translate">
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button type="button" mat-icon-button color="warn" *ngIf="isDraft && auth.isAdmin"
+                        (click)="removeItem(item)"
+                        [matTooltip]="'COMMON.DELETE' | translate">
+                  <mat-icon>remove_circle_outline</mat-icon>
+                </button>
+              </span>
+            </div>
+
+          </ng-container>
+          <mat-divider></mat-divider>
+          <div class="item-row total-row">
+            <span>{{ 'PO.TOTAL' | translate }}</span>
+            <span></span><span></span><span></span>
+            <span class="align-right total-value">€{{ totalValue | number:'1.2-2' }}</span>
+            <span></span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+  </div>
+
+  <!-- Received notice -->
+  <mat-card class="received-notice" *ngIf="isReceived">
+    <mat-card-content>
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ 'PO.RECEIVED_NOTICE' | translate }}</span>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<div class="loading-spinner" *ngIf="loading">
+  <mat-spinner diameter="48"></mat-spinner>
+</div>

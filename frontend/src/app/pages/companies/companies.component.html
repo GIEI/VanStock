@@ -1,0 +1,168 @@
+<div class="page-container">
+  <div class="page-header">
+    <h2>{{ 'COMPANIES.TITLE' | translate }}</h2>
+  </div>
+
+  <!-- Create form -->
+  <mat-card class="mb-16">
+    <mat-card-content>
+      <div class="create-row">
+        <mat-form-field appearance="outline" class="flex-1">
+          <mat-label>{{ 'COMPANIES.NEW_NAME' | translate }}</mat-label>
+          <input matInput [(ngModel)]="newName" (keyup.enter)="create()" placeholder="{{ 'COMPANIES.NEW_PLACEHOLDER' | translate }}">
+        </mat-form-field>
+        <button mat-raised-button color="primary" (click)="create()" [disabled]="!newName.trim()">
+          <mat-icon>add</mat-icon> {{ 'COMPANIES.CREATE_BTN' | translate }}
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card>
+    <mat-card-content>
+      <table mat-table [dataSource]="companies" class="full-width">
+
+        <!-- Logo column -->
+        <ng-container matColumnDef="logo">
+          <th mat-header-cell *matHeaderCellDef style="width:72px">{{ 'COMPANIES.LOGO' | translate }}</th>
+          <td mat-cell *matCellDef="let c" class="logo-cell">
+            <label class="logo-upload-wrap" [matTooltip]="('COMPANIES.UPLOAD_LOGO' | translate)">
+              <input type="file" accept="image/*" hidden (change)="onLogoSelected($event, c)">
+              <img *ngIf="c.logo_url" [src]="c.logo_url | photoUrl" [alt]="c.name" class="company-logo">
+              <div *ngIf="!c.logo_url" class="logo-placeholder">
+                <mat-icon>business</mat-icon>
+              </div>
+              <div class="logo-overlay"><mat-icon>upload</mat-icon></div>
+            </label>
+          </td>
+        </ng-container>
+
+        <!-- Name column -->
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>{{ 'COMPANIES.NAME' | translate }}</th>
+          <td mat-cell *matCellDef="let c">
+            <ng-container *ngIf="editId !== c.id; else editTpl">
+              <strong>{{c.name}}</strong>
+            </ng-container>
+            <ng-template #editTpl>
+              <mat-form-field appearance="outline" style="margin:0;font-size:14px">
+                <input matInput [(ngModel)]="editName" (keyup.enter)="saveEdit(c)" (keyup.escape)="editId=null">
+              </mat-form-field>
+            </ng-template>
+          </td>
+        </ng-container>
+
+        <!-- Currency column -->
+        <ng-container matColumnDef="currency">
+          <th mat-header-cell *matHeaderCellDef>{{ 'COMPANIES.CURRENCY' | translate }}</th>
+          <td mat-cell *matCellDef="let c">
+            <ng-container *ngIf="editId !== c.id">
+              <span class="currency-badge">{{c.currency || 'EUR'}}</span>
+            </ng-container>
+            <ng-container *ngIf="editId === c.id">
+              <mat-form-field appearance="outline" class="currency-select">
+                <mat-select [(ngModel)]="editCurrency">
+                  <mat-option *ngFor="let cur of currencies" [value]="cur.code">
+                    {{cur.label}}
+                  </mat-option>
+                </mat-select>
+              </mat-form-field>
+            </ng-container>
+          </td>
+        </ng-container>
+
+        <!-- License column -->
+        <ng-container matColumnDef="license">
+          <th mat-header-cell *matHeaderCellDef>{{ 'COMPANIES.LICENSE' | translate }}</th>
+          <td mat-cell *matCellDef="let c" class="license-cell">
+            <ng-container *ngIf="sub(c) as s; else noSub">
+              <span class="license-chip" [class.license-chip--full]="isSeatsFull(c)">
+                {{ s.used_seats }} / {{ s.max_seats }}
+                <span class="plan-chip">{{ s.plan_type }}</span>
+              </span>
+              <button mat-icon-button [matTooltip]="'SUBSCRIPTION.EDIT_TITLE' | translate" (click)="editSubscription(c)">
+                <mat-icon>tune</mat-icon>
+              </button>
+            </ng-container>
+            <ng-template #noSub><span class="muted">—</span></ng-template>
+          </td>
+        </ng-container>
+
+        <!-- Date column -->
+        <ng-container matColumnDef="created_at">
+          <th mat-header-cell *matHeaderCellDef>{{ 'COMPANIES.CREATED_AT' | translate }}</th>
+          <td mat-cell *matCellDef="let c">{{c.created_at | date:'dd/MM/yyyy'}}</td>
+        </ng-container>
+
+        <!-- Word Template column -->
+        <ng-container matColumnDef="template">
+          <th mat-header-cell *matHeaderCellDef>{{ 'COMPANIES.TEMPLATE' | translate }}</th>
+          <td mat-cell *matCellDef="let c" class="template-cell">
+            <ng-container *ngIf="c.word_template_url; else noTemplateTpl">
+              <span class="template-badge">
+                <mat-icon class="template-icon">description</mat-icon>
+                {{ 'COMPANIES.TEMPLATE_ACTIVE' | translate }}
+              </span>
+              <button type="button" mat-icon-button color="warn"
+                      [matTooltip]="'COMPANIES.DELETE_TEMPLATE' | translate"
+                      (click)="deleteTemplate(c)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </ng-container>
+            <ng-template #noTemplateTpl>
+              <label class="template-upload-btn" [matTooltip]="'COMPANIES.UPLOAD_TEMPLATE' | translate">
+                <input type="file" accept=".docx" hidden (change)="onTemplateSelected($event, c)">
+                <mat-icon>upload_file</mat-icon>
+                {{ 'COMPANIES.UPLOAD_TEMPLATE' | translate }}
+              </label>
+            </ng-template>
+          </td>
+        </ng-container>
+
+        <!-- Actions column -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef></th>
+          <td mat-cell *matCellDef="let c" class="actions-cell">
+            <ng-container *ngIf="editId !== c.id; else saveTpl">
+              <button mat-icon-button [matTooltip]="'COMPANIES.RENAME_TOOLTIP' | translate" (click)="startEdit(c)">
+                <mat-icon>edit</mat-icon>
+              </button>
+              <button mat-icon-button [matTooltip]="'SMTP.CONFIGURE' | translate" (click)="configureSmtp(c)">
+                <mat-icon>mail_outline</mat-icon>
+              </button>
+              <button mat-icon-button matTooltip="Gestisci funzionalità" (click)="openFeatures(c)">
+                <mat-icon>toggle_on</mat-icon>
+              </button>
+              <button mat-icon-button [matTooltip]="'COMPANIES.DELETE_TOOLTIP' | translate" color="warn" (click)="delete(c)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </ng-container>
+            <ng-template #saveTpl>
+              <button mat-icon-button [matTooltip]="'COMPANIES.SAVE_TOOLTIP' | translate" color="primary" (click)="saveEdit(c)">
+                <mat-icon>check</mat-icon>
+              </button>
+              <button mat-icon-button [matTooltip]="'COMPANIES.CANCEL_TOOLTIP' | translate" (click)="editId=null">
+                <mat-icon>close</mat-icon>
+              </button>
+            </ng-template>
+          </td>
+        </ng-container>
+
+        <!-- Add user column -->
+        <ng-container matColumnDef="adduser">
+          <th mat-header-cell *matHeaderCellDef [attr.aria-label]="'COMPANIES.USER_ACTIONS' | translate"></th>
+          <td mat-cell *matCellDef="let c">
+            <button type="button" mat-icon-button [matTooltip]="'COMPANIES.ADD_USER_TOOLTIP' | translate" color="primary" (click)="openAddUser(c)">
+              <mat-icon>person_add</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+      </table>
+
+      <p *ngIf="!loading && companies.length === 0" class="empty-state">{{ 'COMPANIES.EMPTY' | translate }}</p>
+    </mat-card-content>
+  </mat-card>
+</div>

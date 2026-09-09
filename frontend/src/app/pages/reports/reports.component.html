@@ -1,0 +1,211 @@
+<div class="page-root">
+
+  <!-- ── HEADER ────────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="page-title-row">
+      <mat-icon class="page-title-icon">assignment</mat-icon>
+      <h1 class="page-title">{{ 'REPORTS.TITLE' | translate }}</h1>
+    </div>
+    <button *ngIf="!showForm" mat-raised-button color="primary" (click)="openForm()">
+      <mat-icon>add</mat-icon>
+      {{ 'REPORTS.NEW_REPORT' | translate }}
+    </button>
+  </div>
+
+  <!-- ── FORM ──────────────────────────────────────────────────────────── -->
+  <mat-card *ngIf="showForm" class="form-card">
+    <mat-card-content>
+      <h2 class="form-title">{{ 'REPORTS.NEW_REPORT' | translate }}</h2>
+
+      <form [formGroup]="form">
+        <!-- Date picker -->
+        <mat-form-field appearance="outline" class="date-field">
+          <mat-label>{{ 'REPORTS.DATE' | translate }}</mat-label>
+          <input matInput [matDatepicker]="picker"
+                 formControlName="report_date"
+                 (dateChange)="onDateChange($event)" readonly>
+          <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+        </mat-form-field>
+
+        <!-- Preview: jobs for selected date -->
+        <div class="preview-section" *ngIf="!formLoading">
+          <div class="preview-header">
+            <mat-icon>work</mat-icon>
+            <span>{{ 'REPORTS.JOBS_TODAY' | translate }}</span>
+            <span class="badge">{{ todayJobs.length }}</span>
+          </div>
+          <div *ngIf="todayJobs.length === 0" class="preview-empty">{{ 'REPORTS.EMPTY_JOBS' | translate }}</div>
+          <div class="preview-list" *ngIf="todayJobs.length > 0">
+            <div *ngFor="let j of todayJobs" class="preview-item">
+              <span class="status-dot"
+                    [style.background]="jobStatusColor(j.status)"></span>
+              <span class="preview-item-name">{{ j.title }}</span>
+              <span *ngIf="j.client_name" class="preview-item-sub">· {{ j.client_name }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview: movements for selected date -->
+        <div class="preview-section" *ngIf="!formLoading">
+          <div class="preview-header">
+            <mat-icon>swap_horiz</mat-icon>
+            <span>{{ 'REPORTS.MOVEMENTS_TODAY' | translate }}</span>
+            <span class="badge">{{ todayMovements.length }}</span>
+          </div>
+          <div *ngIf="todayMovements.length === 0" class="preview-empty">{{ 'REPORTS.EMPTY_MOVEMENTS' | translate }}</div>
+          <div class="preview-list" *ngIf="todayMovements.length > 0">
+            <div *ngFor="let m of todayMovements" class="preview-item">
+              <mat-icon class="mov-icon" [style.color]="movementColor(m.type)">{{ movementIcon(m.type) }}</mat-icon>
+              <span class="preview-item-name">{{ m.product_name }}</span>
+              <span class="preview-item-sub">{{ m.quantity }} {{ m.unit }}</span>
+            </div>
+          </div>
+        </div>
+        <div *ngIf="formLoading" class="form-loading">
+          <mat-spinner diameter="24"></mat-spinner>
+        </div>
+
+        <mat-divider></mat-divider>
+
+        <!-- Notes -->
+        <mat-form-field appearance="outline" class="notes-field full-width">
+          <mat-label>{{ 'REPORTS.NOTES' | translate }}</mat-label>
+          <textarea matInput formControlName="notes" rows="4"
+                    [placeholder]="'REPORTS.NOTES_PLACEHOLDER' | translate"></textarea>
+        </mat-form-field>
+      </form>
+
+      <div class="form-actions">
+        <button mat-button (click)="cancel()">{{ 'COMMON.CANCEL' | translate }}</button>
+        <button mat-raised-button color="primary"
+                [disabled]="submitting"
+                (click)="submit()">
+          <mat-spinner *ngIf="submitting" diameter="18" class="btn-spinner"></mat-spinner>
+          {{ 'REPORTS.SUBMIT' | translate }}
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- ── LOADING ────────────────────────────────────────────────────────── -->
+  <div *ngIf="loading" class="center-spinner">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+
+  <!-- ── LIST ──────────────────────────────────────────────────────────── -->
+  <ng-container *ngIf="!loading && !showForm">
+
+    <div *ngIf="reports.length === 0" class="empty-state">
+      <mat-icon>assignment</mat-icon>
+      <p>{{ 'REPORTS.NO_REPORTS' | translate }}</p>
+    </div>
+
+    <div class="reports-list" *ngIf="reports.length > 0">
+      <mat-card *ngFor="let r of reports"
+                class="report-card"
+                [class.report-card--selected]="selectedReport?.id === r.id"
+                (click)="openDetail(r)">
+        <mat-card-content>
+          <div class="report-row">
+            <div class="report-left">
+              <div class="report-date">{{ r.report_date | date:'dd/MM/yyyy' }}</div>
+              <div *ngIf="auth.isAdmin" class="report-user">
+                <mat-icon>person</mat-icon> {{ r.user_name }}
+              </div>
+              <div *ngIf="r.notes" class="report-notes">{{ r.notes }}</div>
+            </div>
+            <div class="report-right">
+              <div class="report-stat">
+                <mat-icon>work</mat-icon>
+                <span>{{ r.jobs_count ?? 0 }}</span>
+              </div>
+              <div class="report-stat">
+                <mat-icon>swap_horiz</mat-icon>
+                <span>{{ r.movements_count ?? 0 }}</span>
+              </div>
+              <button *ngIf="auth.isAdmin"
+                      type="button"
+                      mat-icon-button
+                      class="delete-report-btn"
+                      (click)="deleteReport(r, $event)"
+                      matTooltip="Elimina rapporto">
+                <mat-icon>delete</mat-icon>
+              </button>
+              <mat-icon class="report-arrow">
+                {{ selectedReport?.id === r.id ? 'expand_less' : 'expand_more' }}
+              </mat-icon>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- ── DETAIL PANEL ──────────────────────────────────────────────── -->
+      <div *ngIf="detailLoading" class="center-spinner"><mat-spinner diameter="32"></mat-spinner></div>
+
+      <mat-card *ngIf="selectedReport && !detailLoading" class="detail-card">
+        <mat-card-content>
+          <div class="detail-header">
+            <h3>{{ selectedReport.report_date | date:'dd/MM/yyyy' }}</h3>
+            <span *ngIf="auth.isAdmin" class="detail-user">
+              <mat-icon>person</mat-icon> {{ selectedReport.user_name }}
+            </span>
+          </div>
+
+          <!-- Note -->
+          <div *ngIf="selectedReport.notes" class="detail-notes">
+            <mat-icon>notes</mat-icon>
+            <p>{{ selectedReport.notes }}</p>
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <!-- Lavori completati (con movimenti annidati) -->
+          <div class="detail-section">
+            <div class="detail-section-title">
+              <mat-icon>work</mat-icon>
+              <span>{{ 'REPORTS.COMPLETED_JOBS' | translate }}</span>
+              <span class="badge">{{ selectedReport.jobs?.length ?? 0 }}</span>
+            </div>
+
+            <div *ngIf="!selectedReport.jobs?.length" class="preview-empty">{{ 'REPORTS.NO_COMPLETED_JOBS' | translate }}</div>
+
+            <div *ngFor="let j of selectedReport.jobs" class="detail-job-block">
+              <!-- Job header -->
+              <div class="detail-job-header">
+                <span class="status-dot status-dot--completato"></span>
+                <span class="detail-item-name">{{ j.title }}</span>
+                <span *ngIf="j.client_name" class="detail-item-sub">· {{ j.client_name }}</span>
+              </div>
+              <!-- Movimenti del lavoro -->
+              <div *ngFor="let m of j.movements" class="detail-item detail-item--indented">
+                <mat-icon class="mov-icon" [style.color]="movementColor(m.type)">{{ movementIcon(m.type) }}</mat-icon>
+                <span class="detail-item-name">{{ m.product_name }}</span>
+                <span class="detail-item-sub">{{ m.quantity }} {{ m.unit }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Altri movimenti (non collegati a lavori) -->
+          <ng-container *ngIf="(selectedReport.movements_other?.length ?? 0) > 0">
+            <mat-divider></mat-divider>
+            <div class="detail-section">
+              <div class="detail-section-title">
+                <mat-icon>swap_horiz</mat-icon>
+                <span>{{ 'REPORTS.OTHER_MOVEMENTS' | translate }}</span>
+                <span class="badge">{{ selectedReport.movements_other!.length }}</span>
+              </div>
+              <div *ngFor="let m of selectedReport.movements_other" class="detail-item">
+                <mat-icon class="mov-icon" [style.color]="movementColor(m.type)">{{ movementIcon(m.type) }}</mat-icon>
+                <span class="detail-item-name">{{ m.product_name }}</span>
+                <span class="detail-item-sub">{{ m.quantity }} {{ m.unit }}</span>
+              </div>
+            </div>
+          </ng-container>
+
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </ng-container>
+
+</div>

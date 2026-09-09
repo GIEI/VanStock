@@ -1,0 +1,104 @@
+<div class="page-container">
+
+  <div class="page-header">
+    <h2>{{ 'MOVEMENTS.TITLE' | translate }}</h2>
+    <a mat-fab color="primary" routerLink="/movements/new" aria-label="Nuovo movimento">
+      <mat-icon>add</mat-icon>
+    </a>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-row mb-8">
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'MOVEMENTS.TYPE' | translate }}</mat-label>
+      <mat-select [(ngModel)]="filterType" (ngModelChange)="load()">
+        <mat-option value="">{{ 'MOVEMENTS.ALL' | translate }}</mat-option>
+        <mat-option value="carico">{{ 'MOVEMENTS.LOAD' | translate }}</mat-option>
+        <mat-option value="scarico">{{ 'MOVEMENTS.UNLOAD' | translate }}</mat-option>
+        <mat-option value="trasferimento">{{ 'MOVEMENTS.TRANSFER' | translate }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'MOVEMENTS.DATE_FROM' | translate }}</mat-label>
+      <input matInput [matDatepicker]="pickerFrom" [(ngModel)]="dateFrom" (dateChange)="load()" title="{{ 'MOVEMENTS.DATE_FROM' | translate }}">
+      <mat-datepicker-toggle matIconSuffix [for]="pickerFrom"></mat-datepicker-toggle>
+      <mat-datepicker #pickerFrom></mat-datepicker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>{{ 'MOVEMENTS.DATE_TO' | translate }}</mat-label>
+      <input matInput [matDatepicker]="pickerTo" [(ngModel)]="dateTo" (dateChange)="load()" title="{{ 'MOVEMENTS.DATE_TO' | translate }}">
+      <mat-datepicker-toggle matIconSuffix [for]="pickerTo"></mat-datepicker-toggle>
+      <mat-datepicker #pickerTo></mat-datepicker>
+    </mat-form-field>
+
+    <button type="button" mat-icon-button *ngIf="dateFrom || dateTo" (click)="clearDates()"
+            matTooltip="{{ 'MOVEMENTS.CLEAR_DATES' | translate }}" class="clear-btn">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="quick-dates mb-16">
+    <button type="button" mat-stroked-button (click)="setQuickDate('today')">{{ 'MOVEMENTS.TODAY' | translate }}</button>
+    <button type="button" mat-stroked-button (click)="setQuickDate('yesterday')">{{ 'MOVEMENTS.YESTERDAY' | translate }}</button>
+    <button type="button" mat-stroked-button (click)="setQuickDate('week')">{{ 'MOVEMENTS.LAST_7' | translate }}</button>
+    <button type="button" mat-stroked-button (click)="setQuickDate('month')">{{ 'MOVEMENTS.LAST_30' | translate }}</button>
+  </div>
+
+  <div *ngIf="loading" class="text-center"><mat-spinner diameter="40" style="margin:0 auto"></mat-spinner></div>
+
+  <div *ngIf="!loading && movements.length === 0" class="empty-state">
+    <mat-icon>swap_horiz</mat-icon>
+    <p>{{ 'MOVEMENTS.EMPTY' | translate }}</p>
+    <a mat-raised-button color="primary" routerLink="/movements/new">{{ 'MOVEMENTS.NEW' | translate }}</a>
+  </div>
+
+  <mat-card *ngIf="!loading && movements.length > 0">
+    <mat-card-content>
+      <div *ngFor="let m of movements; let i = index; let last = last">
+
+        <!-- Date separator -->
+        <div *ngIf="i === 0 || groupDate(movements[i-1].created_at) !== groupDate(m.created_at)"
+             class="date-group">
+          {{groupDate(m.created_at)}}
+        </div>
+
+        <div class="movement-row">
+          <div class="mov-type-icon" [style.background]="movementColor(m.type)">
+            <mat-icon>{{movementIcon(m.type)}}</mat-icon>
+          </div>
+
+          <div class="mov-info">
+            <a [routerLink]="['/products', m.product_id]" class="mov-product-link">
+              {{m.product_name}}
+            </a>
+            <span class="mov-sku">{{m.sku}}</span>
+            <span class="mov-locations" *ngIf="m.from_location_name || m.to_location_name">
+              <span *ngIf="m.from_location_name">{{m.from_location_name}}</span>
+              <mat-icon *ngIf="m.from_location_name && m.to_location_name" style="font-size:14px;width:14px;height:14px">arrow_forward</mat-icon>
+              <span *ngIf="m.to_location_name">{{m.to_location_name}}</span>
+            </span>
+            <span *ngIf="m.notes" class="mov-notes">{{m.notes}}</span>
+            <span *ngIf="m.created_by" class="mov-author">
+              <mat-icon>person</mat-icon>{{m.created_by}}
+            </span>
+          </div>
+
+          <div class="mov-right">
+            <span class="mov-qty" [ngClass]="movementClass(m.type)">
+              {{m.type === 'scarico' ? '-' : '+'}}{{m.quantity}} {{m.unit}}
+            </span>
+            <span class="mov-time">{{m.created_at | date:'HH:mm'}}</span>
+            <button mat-icon-button (click)="delete(m)" class="delete-btn">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <mat-divider *ngIf="!last"></mat-divider>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+</div>

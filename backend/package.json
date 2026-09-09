@@ -1,0 +1,40 @@
+{
+  "name": "vanstock-backend",
+  "version": "1.0.0",
+  "description": "VanStock inventory management REST API",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "node --test test/**/*.test.js",
+    "test:unit": "node --test test/health.test.js",
+    "test:contract": "node --test test/openapi-contract.test.js",
+    "integration:process-inbox": "node src/scripts/process-integration-inbox.js",
+    "integration:dispatch-webhooks": "node src/scripts/dispatch-integration-webhooks.js"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.17",
+    "archiver": "^7.0.1",
+    "bcryptjs": "2.4.3",
+    "cors": "^2.8.5",
+    "docxtemplater": "^3.53.0",
+    "docxtemplater-image-module-free": "^1.1.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "firebase-admin": "^13.0.0",
+    "jsonwebtoken": "9.0.2",
+    "multer": "^2.0.0",
+    "nodemailer": "^8.0.2",
+    "pdfkit": "^0.15.0",
+    "pg": "^8.11.5",
+    "pizzip": "^3.1.7",
+    "sharp": "^0.34.5",
+    "tar-stream": "^3.2.0",
+    "uuid": "^9.0.1",
+    "web-push": "^3.6.7",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

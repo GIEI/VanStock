@@ -1,0 +1,43 @@
+# Angular
+.angular/
+node_modules/
+dist/
+
+# Android build output
+ANDROID/.gradle/
+ANDROID/app/build/
+ANDROID/local.properties
+ANDROID/.idea/
+MOBILE/android/app/build/
+MOBILE/android/caches
+MOBILE/android/wrapper
+
+# Environment / secrets
+.env
+*.local
+firebase-service-account.json
+MOBILE/android/app/google-services.json
+MOBILE/ios/Runner/GoogleService-Info.plist
+config/nginx.prod.conf
+nginx/certs/
+nginx/certbot/
+
+# SITOWEB
+SITOWEB/config.php
+SITOWEB/site-config.php
+SITOWEB/vendor/
+
+# Claude
+.claude/
+.cursor/
+.idea/
+data/backups/*
+!data/backups/.gitkeep
+data/uploads/*
+!data/uploads/.gitkeep
+*.log
+backend/scratch/
+db/seed_*.sql
+
+# Codex
+.codex/

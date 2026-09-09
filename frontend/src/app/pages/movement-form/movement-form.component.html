@@ -1,0 +1,175 @@
+<div class="page-container">
+
+  <div class="page-header">
+    <button mat-icon-button routerLink="/movements"><mat-icon>arrow_back</mat-icon></button>
+
+    <!-- Note toggle — top left, next to back button -->
+    <button type="button" mat-icon-button
+            class="notes-toggle-btn"
+            [class.notes-toggle-btn--active]="showNotes"
+            (click)="showNotes = !showNotes"
+            [title]="showNotes ? ('MOVEMENT_FORM.HIDE_NOTES' | translate) : ('MOVEMENT_FORM.ADD_NOTES' | translate)">
+      <mat-icon>{{showNotes ? 'speaker_notes' : 'speaker_notes_off'}}</mat-icon>
+    </button>
+
+    <h2>{{ 'MOVEMENT_FORM.NEW_TITLE' | translate }}</h2>
+  </div>
+
+  <mat-card>
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="save()">
+
+        <!-- Movement type selector -->
+        <div class="type-selector mb-16">
+          <button type="button" mat-stroked-button
+                  [class.type-active-carico]="form.get('type')?.value === 'carico'"
+                  (click)="form.get('type')!.setValue('carico')">
+            <mat-icon>add_circle</mat-icon> {{ 'MOVEMENT_FORM.CARICO' | translate }}
+          </button>
+          <button type="button" mat-stroked-button
+                  [class.type-active-scarico]="form.get('type')?.value === 'scarico'"
+                  (click)="form.get('type')!.setValue('scarico')">
+            <mat-icon>remove_circle</mat-icon> {{ 'MOVEMENT_FORM.SCARICO' | translate }}
+          </button>
+          <button type="button" mat-stroked-button
+                  [class.type-active-trasferimento]="form.get('type')?.value === 'trasferimento'"
+                  (click)="form.get('type')!.setValue('trasferimento')">
+            <mat-icon>swap_horiz</mat-icon> {{ 'MOVEMENT_FORM.TRASFERIMENTO' | translate }}
+          </button>
+        </div>
+
+        <!-- Product -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>{{ 'MOVEMENT_FORM.PRODUCT' | translate }}</mat-label>
+          <mat-select formControlName="product_id" (selectionChange)="onProductChange($event.value)">
+            <mat-option *ngFor="let p of products" [value]="p.id">
+              {{p.name}} — {{p.sku}} ({{p.quantity}} {{p.unit}})
+            </mat-option>
+          </mat-select>
+          <mat-error>{{ 'MOVEMENT_FORM.REQUIRED' | translate }}</mat-error>
+        </mat-form-field>
+
+        <!-- Selected product info -->
+        <div *ngIf="selectedProduct" class="product-preview mb-16">
+          <span>{{ 'MOVEMENT_FORM.CURRENT_STOCK' | translate }}: <strong>{{currentStock}} {{selectedProduct.unit}}</strong></span>
+          <span *ngIf="currentLocationName" class="location-tag">
+            <mat-icon style="font-size:14px;width:14px;height:14px">location_on</mat-icon>
+            {{currentLocationName}}
+          </span>
+        </div>
+
+        <!-- Quantity -->
+        <mat-form-field appearance="outline" class="qty-field">
+          <mat-label>{{ 'MOVEMENT_FORM.QUANTITY' | translate }}</mat-label>
+          <input matInput type="number" formControlName="quantity" min="0.01" step="1">
+          <span matSuffix *ngIf="selectedProduct">{{selectedProduct.unit}}</span>
+          <mat-error>{{ 'MOVEMENT_FORM.INVALID_QUANTITY' | translate }}</mat-error>
+        </mat-form-field>
+
+        <!-- Locations -->
+        <div class="locations-row">
+          <mat-form-field appearance="outline" *ngIf="form.get('type')?.value !== 'carico'">
+            <mat-label>{{ 'MOVEMENT_FORM.FROM_LOCATION' | translate }}</mat-label>
+            <mat-select formControlName="from_location_id">
+              <mat-option *ngFor="let loc of locations" [value]="loc.id">{{loc.name}}</mat-option>
+            </mat-select>
+            <mat-error>{{ 'MOVEMENT_FORM.SELECT_FROM' | translate }}</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" *ngIf="form.get('type')?.value !== 'scarico'">
+            <mat-label>{{ 'MOVEMENT_FORM.TO_LOCATION' | translate }}</mat-label>
+            <mat-select formControlName="to_location_id">
+              <mat-option *ngFor="let loc of locations"
+                          [value]="loc.id"
+                          [disabled]="loc.id === form.get('from_location_id')?.value">
+                {{loc.name}}
+              </mat-option>
+            </mat-select>
+            <mat-error>{{ 'MOVEMENT_FORM.SELECT_TO' | translate }}</mat-error>
+          </mat-form-field>
+        </div>
+
+        <!-- Purchase price (carico only) -->
+        <mat-form-field appearance="outline" class="full-width purchase-price-field" *ngIf="form.get('type')?.value === 'carico'">
+          <mat-label>{{ 'MOVEMENT_FORM.PURCHASE_PRICE' | translate }}</mat-label>
+          <mat-icon matPrefix>euro</mat-icon>
+          <input matInput type="number" formControlName="purchase_price" min="0" step="0.01" placeholder="0.00">
+          <mat-hint>{{ 'MOVEMENT_FORM.PURCHASE_PRICE_HINT' | translate }}</mat-hint>
+          <mat-error>{{ 'MOVEMENT_FORM.PURCHASE_PRICE_REQUIRED' | translate }}</mat-error>
+        </mat-form-field>
+
+        <!-- Batch selector (scarico / trasferimento + tracks_batches) -->
+        <mat-form-field appearance="outline" class="full-width" *ngIf="showBatchSelector">
+          <mat-label>Lotto da utilizzare</mat-label>
+          <mat-icon matPrefix>inventory</mat-icon>
+          <mat-select formControlName="batch_number">
+            <mat-option [value]="''">Automatico (prima scadenza)</mat-option>
+            <mat-option *ngFor="let b of availableBatches" [value]="b.batch_number">
+              <span class="batch-opt-number">{{b.batch_number}}</span>
+              <span class="batch-opt-meta">
+                &nbsp;·&nbsp;{{b.quantity}} {{selectedProduct?.unit}}
+                <ng-container *ngIf="b.expiry_date">&nbsp;· Scade {{b.expiry_date | date:'dd/MM/yy'}}</ng-container>
+              </span>
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <!-- Batch number & expiry date (carico + tracks_batches) -->
+        <div *ngIf="showBatchFields" class="batch-fields-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Numero di lotto</mat-label>
+            <mat-icon matPrefix>tag</mat-icon>
+            <input matInput formControlName="batch_number" placeholder="es. LOT-2024-001">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Data di scadenza</mat-label>
+            <mat-icon matPrefix>event</mat-icon>
+            <input matInput type="date" formControlName="expiry_date">
+          </mat-form-field>
+        </div>
+
+        <!-- ── Note & Riferimento (collapsible) ─────────────────── -->
+        <div class="notes-panel" [class.notes-panel--open]="showNotes">
+          <div class="notes-panel-inner">
+            <div class="notes-panel-label">
+              <mat-icon>info_outline</mat-icon>
+              <span>{{ 'MOVEMENT_FORM.NOTES_PANEL_LABEL' | translate }}</span>
+            </div>
+
+            <!-- Job/Cantiere selector -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'MOVEMENT_FORM.JOB_LABEL' | translate }}</mat-label>
+              <mat-select formControlName="job_id">
+                <mat-option [value]="null">{{ 'MOVEMENT_FORM.JOB_NONE' | translate }}</mat-option>
+                <mat-option *ngFor="let j of jobs" [value]="j.id">
+                  {{j.title}}
+                  <span *ngIf="j.client_name" class="job-client-label">
+                    &nbsp;· {{j.client_name}}
+                  </span>
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <!-- Notes textarea -->
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>{{ 'MOVEMENT_FORM.NOTES' | translate }}</mat-label>
+              <textarea matInput formControlName="notes"
+                        rows="3"
+                        [placeholder]="'MOVEMENT_FORM.NOTES_HINT' | translate"></textarea>
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button mat-button type="button" routerLink="/movements">{{ 'MOVEMENT_FORM.CANCEL' | translate }}</button>
+          <button mat-raised-button color="primary" type="submit" [disabled]="saving">
+            <mat-spinner *ngIf="saving" diameter="20" style="display:inline-block;margin-right:8px"></mat-spinner>
+            {{ 'MOVEMENT_FORM.SAVE_BTN' | translate }}
+          </button>
+        </div>
+
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

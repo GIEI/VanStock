@@ -1,0 +1,146 @@
+<div class="page-container">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <mat-icon class="header-icon">local_shipping</mat-icon>
+      <h1>{{ 'VAN_LOAD.TITLE' | translate }}</h1>
+    </div>
+    <button mat-raised-button color="primary"
+            [disabled]="selectedItems.length === 0 || !toLocationId || saving"
+            (click)="openConfirm()">
+      <mat-icon>upload</mat-icon>
+      {{ 'VAN_LOAD.LOAD_BTN' | translate: {count: selectedItems.length} }}
+    </button>
+  </div>
+
+  <!-- Location selectors -->
+  <div class="location-row">
+    <mat-form-field appearance="outline" class="loc-field">
+      <mat-label>{{ 'VAN_LOAD.FROM' | translate }}</mat-label>
+      <mat-select [(ngModel)]="fromLocationId" (ngModelChange)="onFromChange()">
+        <mat-option *ngFor="let loc of fromLocations" [value]="loc.id">
+          <mat-icon class="opt-icon">{{ locIcon(loc.type) }}</mat-icon>
+          {{ loc.name }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-icon class="arrow-icon">arrow_forward</mat-icon>
+
+    <mat-form-field appearance="outline" class="loc-field">
+      <mat-label>{{ 'VAN_LOAD.TO' | translate }}</mat-label>
+      <mat-select [(ngModel)]="toLocationId">
+        <mat-option *ngFor="let loc of toLocations" [value]="loc.id">
+          <mat-icon class="opt-icon">{{ locIcon(loc.type) }}</mat-icon>
+          {{ loc.name }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <!-- Search -->
+  <div class="search-row">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>{{ 'VAN_LOAD.SEARCH' | translate }}</mat-label>
+      <input matInput [(ngModel)]="searchQuery">
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <span class="sel-count" *ngIf="selectedItems.length > 0">
+      <mat-icon>check_circle</mat-icon> {{ selectedItems.length }} {{ 'VAN_LOAD.SELECTED_COUNT' | translate }}
+    </span>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="text-center mt-16">
+    <mat-spinner diameter="40" style="margin:0 auto"></mat-spinner>
+  </div>
+
+  <!-- No location selected -->
+  <div *ngIf="!loading && !fromLocationId" class="empty-state">
+    <mat-icon>warehouse</mat-icon>
+    <p>{{ 'VAN_LOAD.SELECT_SOURCE_HINT' | translate }}</p>
+  </div>
+
+  <!-- Empty products -->
+  <div *ngIf="!loading && fromLocationId && items.length === 0" class="empty-state">
+    <mat-icon>inventory_2</mat-icon>
+    <p>{{ 'VAN_LOAD.NO_PRODUCTS' | translate }}</p>
+  </div>
+
+  <!-- Product list -->
+  <div *ngIf="!loading && filteredItems.length > 0" class="product-list-card">
+
+    <!-- Select all header -->
+    <div class="list-header">
+      <mat-checkbox
+        [checked]="allSelected"
+        [indeterminate]="someSelected"
+        (change)="toggleAll($event.checked)">
+        {{ 'VAN_LOAD.SELECT_ALL' | translate }}
+      </mat-checkbox>
+      <span class="list-count">{{ filteredItems.length }} {{ 'VAN_LOAD.PRODUCTS_COUNT' | translate }}</span>
+    </div>
+
+    <div class="list-divider"></div>
+
+    <!-- Rows -->
+    <div *ngFor="let item of filteredItems; let last = last" class="product-row"
+         [class.row-selected]="item.selected">
+
+      <!-- Checkbox -->
+      <mat-checkbox [(ngModel)]="item.selected" class="row-check"></mat-checkbox>
+
+      <!-- Info -->
+      <div class="row-info" (click)="item.selected = !item.selected" style="cursor:pointer">
+        <span class="row-name">{{ item.product.name }}</span>
+        <div class="row-meta">
+          <span class="row-sku">{{ item.product.sku }}</span>
+          <span *ngIf="item.product.category" class="row-cat">{{ item.product.category }}</span>
+        </div>
+      </div>
+
+      <!-- Available stock -->
+      <div class="row-stock">
+        <span class="stock-label">{{ 'COMMON.AVAILABLE' | translate }}</span>
+        <span class="stock-val">{{ item.product.quantity }} {{ item.product.unit }}</span>
+      </div>
+
+      <!-- Quantity input -->
+      <div class="row-qty">
+        <button mat-icon-button type="button" class="qty-btn"
+                [disabled]="item.qty <= 1"
+                (click)="item.qty = item.qty - 1; $event.stopPropagation()">
+          <mat-icon>remove</mat-icon>
+        </button>
+        <input type="number" class="qty-input"
+               [(ngModel)]="item.qty"
+               (blur)="clampQty(item)"
+               [min]="1" [max]="item.product.quantity"
+               (click)="$event.stopPropagation()">
+        <button mat-icon-button type="button" class="qty-btn"
+                [disabled]="item.qty >= +item.product.quantity"
+                (click)="item.qty = item.qty + 1; $event.stopPropagation()">
+          <mat-icon>add</mat-icon>
+        </button>
+        <span class="qty-unit">{{ item.product.unit }}</span>
+      </div>
+
+      <div *ngIf="!last" class="row-divider"></div>
+    </div>
+
+  </div>
+
+  <!-- Sticky bottom bar -->
+  <div class="bottom-bar" *ngIf="selectedItems.length > 0">
+    <span class="bar-info">{{ selectedItems.length }} {{ 'VAN_LOAD.PRODUCTS_COUNT' | translate }} {{ 'VAN_LOAD.SELECTED_COUNT' | translate }}</span>
+    <button mat-raised-button color="primary"
+            [disabled]="!toLocationId || saving"
+            (click)="openConfirm()">
+      <mat-icon>{{ saving ? 'hourglass_top' : 'upload' }}</mat-icon>
+      {{ saving ? ('VAN_LOAD.SAVING' | translate) : ('VAN_LOAD.LOAD_VAN_BTN' | translate) }}
+    </button>
+  </div>
+
+</div>

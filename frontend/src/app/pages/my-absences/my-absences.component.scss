@@ -1,0 +1,382 @@
+.page-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+
+  h2 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.87);
+  }
+}
+
+.absences-card {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.month-navigation {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+
+  button {
+    padding: 8px;
+  }
+}
+
+.month-label {
+  font-size: 18px;
+  font-weight: 500;
+  min-width: 150px;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.spinner-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+}
+
+.calendar-container {
+  padding: 16px 0;
+}
+
+.calendar-grid {
+  margin-bottom: 32px;
+}
+
+.calendar-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+  padding: 0 8px;
+}
+
+.day-header {
+  text-align: center;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.7);
+  font-size: 14px;
+  padding: 8px 0;
+}
+
+.calendar-body {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  background-color: #fafafa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  min-height: 60px;
+  font-size: 13px;
+
+  &:hover {
+    border-color: #1976d2;
+    box-shadow: 0 2px 8px rgba(25, 118, 210, 0.15);
+  }
+
+  &.has-absence {
+    background-color: #ffebee;
+    border-color: #ef5350;
+  }
+
+  .day-number {
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.87);
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+
+  .absence-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 4px 0;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: #d32f2f;
+    }
+  }
+
+  .absences-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 100%;
+    padding: 2px 0;
+
+    .absence-entry {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      width: 100%;
+      font-size: 10px;
+
+      .user-name {
+        font-weight: 600;
+        color: rgba(0, 0, 0, 0.8);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+        text-align: center;
+      }
+
+      .delete-btn {
+        padding: 0px;
+        height: auto;
+        min-height: auto;
+        flex-shrink: 0;
+
+        mat-icon {
+          font-size: 12px;
+          width: 12px;
+          height: 12px;
+        }
+      }
+    }
+  }
+}
+
+.empty-day {
+  // Empty cell for days before month starts
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  padding: 16px 8px;
+  margin: 16px 0;
+  border-top: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: rgba(0, 0, 0, 0.7);
+
+  .legend-box {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+
+    &.has-absence {
+      background-color: #ffebee;
+      border-color: #ef5350;
+    }
+  }
+}
+
+.absences-list {
+  margin-top: 24px;
+
+  h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    color: rgba(0, 0, 0, 0.87);
+  }
+
+  .absence-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    background-color: #fafafa;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: #f5f5f5;
+    }
+
+    .absence-date {
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.87);
+      min-width: 100px;
+      font-size: 14px;
+    }
+
+    .absence-user {
+      font-weight: 500;
+      color: rgba(0, 0, 0, 0.75);
+      min-width: 120px;
+      font-size: 13px;
+    }
+
+    .absence-details {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .badge {
+        display: inline-block;
+        background-color: #ef5350;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .notes {
+        color: rgba(0, 0, 0, 0.6);
+        font-size: 13px;
+        font-style: italic;
+      }
+    }
+
+    button {
+      flex-shrink: 0;
+    }
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: rgba(0, 0, 0, 0.54);
+  text-align: center;
+
+  mat-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  p {
+    font-size: 16px;
+    margin: 0;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .page-container {
+    padding: 12px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    gap: 12px;
+
+    h2 {
+      font-size: 24px;
+    }
+  }
+
+  .calendar-day {
+    min-height: 50px;
+    padding: 4px;
+
+    .day-number {
+      font-size: 13px;
+    }
+
+    .absences-container {
+      .absence-entry {
+        .user-name {
+          font-size: 9px;
+        }
+
+        .delete-btn {
+          mat-icon {
+            font-size: 11px;
+            width: 11px;
+            height: 11px;
+          }
+        }
+      }
+    }
+  }
+
+  .absences-list .absence-item {
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .absence-date {
+      flex-basis: 100%;
+    }
+
+    .absence-details {
+      flex-basis: 100%;
+      margin: 0;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .page-container {
+    padding: 8px;
+  }
+
+  .calendar-grid {
+    margin-bottom: 16px;
+  }
+
+  .calendar-day {
+    min-height: 70px;
+    padding: 4px;
+    font-size: 12px;
+
+    .day-number {
+      font-size: 12px;
+    }
+  }
+
+  .month-label {
+    font-size: 16px;
+    min-width: 100px;
+  }
+
+  .legend {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 8px;
+  }
+}

@@ -1,0 +1,118 @@
+<div class="calendar-dialog">
+  <div class="calendar-header">
+    <h2>
+      <mat-icon>event_available</mat-icon>
+      Scegli turno e operatore
+    </h2>
+    <button mat-icon-button (click)="dialogRef.close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="week-nav">
+    <button mat-icon-button type="button" (click)="prevWeek()">
+      <mat-icon>chevron_left</mat-icon>
+    </button>
+    <span class="week-label">{{ weekLabel }}</span>
+    <button mat-icon-button type="button" (click)="nextWeek()">
+      <mat-icon>chevron_right</mat-icon>
+    </button>
+    <button mat-stroked-button type="button" (click)="goToday()" class="today-btn">Oggi</button>
+  </div>
+
+  <div *ngIf="loading" class="spinner-center">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+
+  <div *ngIf="!loading" class="calendar-content">
+    <!-- Calendar grid -->
+    <div class="calendar-wrapper">
+      <table class="cal-table">
+        <thead>
+          <tr>
+            <th class="th-van">Van</th>
+            <th class="th-hour">Ora</th>
+            <th *ngFor="let day of days"
+                class="th-day"
+                [class.today]="day.isToday"
+                [class.weekend]="day.isWeekend">
+              <span class="day-name">{{ day.date | date:'EEE' }}</span>
+              <span class="day-num">{{ day.date | date:'d' }}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let row of vanRows; let vanIdx = index">
+            <ng-container *ngFor="let hourBooking of row.hours; let hourIdx = index; let first = first">
+              <tr class="tr-hour">
+                <td class="td-van" *ngIf="first" [attr.rowspan]="row.hours.length">
+                  <div class="van-cell">
+                    <mat-icon>local_shipping</mat-icon>
+                    <div>
+                      <span class="van-name">{{ row.van.name }}</span>
+                      <span *ngIf="row.van.plate" class="van-plate">{{ row.van.plate }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="td-hour">{{ formatHour(hourBooking.hour) }}</td>
+                <td *ngFor="let day of days; let i = index"
+                    class="td-period"
+                    [class.today-col]="day.isToday"
+                    [class.weekend-col]="day.isWeekend"
+                    [ngClass]="getBookingsForSlot(row.van.id, day.dateStr, hourBooking.hour).length > 0 ? 'cell--occupied' : 'cell--free'"
+                    [class.clickable]="getBookingsForSlot(row.van.id, day.dateStr, hourBooking.hour).length === 0"
+                    (click)="onSlotClick(row.van, day, hourBooking)">
+                  <div class="cell-content">
+                    <!-- Occupied: show user name -->
+                    <ng-container *ngIf="getBookingsForSlot(row.van.id, day.dateStr, hourBooking.hour).length > 0 as slotBookings">
+                      <span class="cell-user-name">
+                        {{ getBookingsForSlot(row.van.id, day.dateStr, hourBooking.hour)[0].booked_by_name }}
+                      </span>
+                    </ng-container>
+                    <!-- Free: show indicator -->
+                    <span *ngIf="getBookingsForSlot(row.van.id, day.dateStr, hourBooking.hour).length === 0" class="cell-free-indicator">
+                      ✓
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            </ng-container>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- User selection panel -->
+    <div *ngIf="selectedSlot" class="user-selection-panel">
+      <div class="panel-header">
+        <h3>
+          Operatori disponibili per {{ selectedSlot.dateStr | date:'d MMM' }}
+          ore {{ formatHour(selectedSlot.hour) }}
+        </h3>
+        <button mat-icon-button type="button" (click)="closeSlotSelection()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <div *ngIf="loadingUsers" class="spinner-center">
+        <mat-spinner diameter="32"></mat-spinner>
+      </div>
+
+      <div *ngIf="!loadingUsers && availableUsers" class="users-list">
+        <div *ngIf="availableUsers.length === 0" class="no-users">
+          <mat-icon>person_off</mat-icon>
+          <p>Nessun operatore disponibile per questo orario</p>
+        </div>
+
+        <div *ngIf="availableUsers.length > 0" class="users-chips">
+          <mat-chip *ngFor="let user of availableUsers"
+                    (click)="selectUser(user)"
+                    class="user-chip">
+            <mat-icon matChipAvatar>person</mat-icon>
+            {{ user.name }}
+          </mat-chip>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
