@@ -21,7 +21,7 @@ utilizzare o contribuire al progetto.
 | Database    | PostgreSQL 16                     |
 | Container   | Docker + Docker Compose           |
 | Proxy       | Nginx                             |
-| App Android | Kotlin + Jetpack Compose          |
+| App Mobile  | Flutter                           |
 
 ## Funzionalità
 
@@ -43,7 +43,6 @@ utilizzare o contribuire al progetto.
 - **Margini e analytics**: tracciamento prezzi di acquisto e calcolo margine lordo
 - **Multitenancy**: supporto multi-azienda con isolamento completo dei dati
 - **PWA**: installabile su Android/iOS come app nativa, funziona offline per i dati in cache
-- **App Android nativa**: app Kotlin/Compose per operatori sul campo
 
 ## Avvio rapido
 
