@@ -1,6 +1,6 @@
 # StockSimple — Gestione Inventario Mobile
 
-Applicazione fullstack per la gestione dell'inventario di piccole imprese e artigiani con magazzini ambulanti (furgoni), cantieri e depositi fissi.
+Applicazione fullstack per la gestione degli interventi di piccole imprese e artigiani con magazzini ambulanti (furgoni), cantieri e depositi fissi.
 
 ## Open source
 
